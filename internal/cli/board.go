@@ -65,31 +65,37 @@ func newConfigCommand(e *env) *cobra.Command {
 		Short: "Show the resolved board configuration",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			cfg, err := e.loadConfig()
+			session, err := e.open(cmd.Context())
 			if err != nil {
 				return err
 			}
+			cfg := session.cfg
 			p := e.Printer()
 			type view struct {
-				Path         string         `json:"path"`
-				Provider     string         `json:"provider"`
-				Board        string         `json:"board"`
-				Statuses     []string       `json:"statuses"`
-				Priorities   []string       `json:"priorities"`
-				Classes      []string       `json:"classes"`
-				ClaimTimeout string         `json:"claim_timeout"`
-				Branching    any            `json:"branching"`
-				CacheTTL     string         `json:"cache_ttl"`
-				CacheDir     string         `json:"cache_dir"`
-				Settings     map[string]any `json:"settings"`
-				Version      string         `json:"yakanban_version"`
+				Path         string                           `json:"path"`
+				Provider     string                           `json:"provider"`
+				Board        string                           `json:"board"`
+				Statuses     []string                         `json:"statuses"`
+				Priorities   []string                         `json:"priorities"`
+				Classes      []string                         `json:"classes"`
+				ClaimTimeout string                           `json:"claim_timeout"`
+				Branching    any                              `json:"branching"`
+				CacheTTL     string                           `json:"cache_ttl"`
+				CacheDir     string                           `json:"cache_dir"`
+				Settings     map[string]any                   `json:"settings"`
+				Capabilities map[string]core.CapabilityStatus `json:"capabilities"`
+				Version      string                           `json:"yakanban_version"`
 			}
 			policy, err := cfg.Branching.Policy()
 			if err != nil {
 				return err
 			}
 			templates := cfg.Branching.EffectiveTemplates()
-			board := cfg.BoardInfo()
+			board := session.service.Board()
+			caps, err := core.ResolveCapabilities(cmd.Context(), session.provider)
+			if err != nil {
+				return err
+			}
 			v := view{
 				Path:         cfg.Path(),
 				Provider:     cfg.Provider,
@@ -103,6 +109,7 @@ func newConfigCommand(e *env) *cobra.Command {
 				CacheDir:     cfg.CacheDir(),
 				Settings:     cfg.Settings(cfg.Provider),
 				Version:      version.String(),
+				Capabilities: caps.Statuses(),
 			}
 			if e.format() == "json" {
 				return p.JSON(v)
@@ -122,6 +129,14 @@ func newConfigCommand(e *env) *cobra.Command {
 			}
 			for k, val := range v.Settings {
 				p.Printf("%s %s=%v\n", p.Dim("provider  "), k, val)
+			}
+			for _, feature := range core.CapabilityNames() {
+				status := v.Capabilities[feature]
+				value := "supported"
+				if !status.Supported {
+					value = "unsupported: " + status.Reason
+				}
+				p.Printf("%s %s: %s\n", p.Dim("capability"), feature, value)
 			}
 			p.Printf("%s %s\n", p.Dim("providers "), strings.Join(registry.Names(), ", "))
 			return nil

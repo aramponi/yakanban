@@ -28,15 +28,12 @@ func New(inner core.Provider, store *cache.Store) *Provider {
 // Name returns the wrapped provider name, so configuration keys still match.
 func (p *Provider) Name() string { return p.inner.Name() }
 
-// Capabilities delegates to the wrapped provider.
-func (p *Provider) Capabilities() core.Capability { return p.inner.Capabilities() }
-
 // Unwrap exposes the decorated provider.
 func (p *Provider) Unwrap() core.Provider { return p.inner }
 
 // Board serves the board description from cache when fresh.
 func (p *Provider) Board(ctx context.Context) (*core.BoardInfo, error) {
-	key := p.inner.Name() + ":board"
+	key := p.inner.Name() + ":board:v2"
 	var hit core.BoardInfo
 	if _, ok := p.store.Get(key, &hit); ok {
 		return &hit, nil
@@ -44,6 +41,10 @@ func (p *Provider) Board(ctx context.Context) (*core.BoardInfo, error) {
 	board, err := p.inner.Board(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if board.Capabilities == nil {
+		caps := core.LegacyCapabilities(p.inner)
+		board.Capabilities = &caps
 	}
 	_ = p.store.Put(key, board)
 	return board, nil

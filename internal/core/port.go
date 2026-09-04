@@ -18,6 +18,7 @@ const (
 	CapDelete
 	CapArchive
 	CapLinkedBranch
+	CapWorkflowDates
 )
 
 // Has reports whether c includes every capability in want.
@@ -31,9 +32,6 @@ func (c Capability) Has(want Capability) bool { return c&want == want }
 type Provider interface {
 	// Name is the provider key used in configuration, e.g. "github".
 	Name() string
-
-	// Capabilities reports the optional model features this backend supports.
-	Capabilities() Capability
 
 	// Board returns the live board description (columns, field vocabulary).
 	Board(ctx context.Context) (*BoardInfo, error)
