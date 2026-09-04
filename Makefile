@@ -7,7 +7,7 @@ GH_EXT_DIR  := $(HOME)/.local/share/gh/extensions/gh-$(BINARY)
 # Keep in step with the version pinned in .github/workflows/ci.yml.
 GOLANGCI_VERSION := v2.12.0
 
-.PHONY: all build test check fmt vet lint install gh-extension clean cross
+.PHONY: all build test check fmt vet lint install gh-extension clean cross site
 
 all: check build
 
@@ -56,5 +56,13 @@ cross:
 			-o dist/$(BINARY)_$${os}_$${arch}$$ext ./cmd/$(BINARY); \
 	done
 
+## site: generate the landing page and llms.txt into site/public
+# The terminal blocks are captured by running the binary against the real
+# board, so this needs a token with the project scope — the same one the CLI
+# uses. There is deliberately no offline fallback: a fallback would be a
+# hand-written transcript, which is the mockup the page promises not to show.
+site: build
+	go run ./cmd/gensite -version "$(VERSION)"
+
 clean:
-	rm -rf bin dist
+	rm -rf bin dist site/public

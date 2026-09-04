@@ -1,0 +1,40 @@
+# {{ .Title }}
+
+> {{ .Blurb }}
+
+Commands are driven from a terminal by developers and AI agents; the tracker
+keeps its own web UI for everybody else. The backend is the source of truth,
+so every write goes straight to it and reads are cached for one minute. Claims
+are soft, expiring locks that keep two agents off the same ticket.
+
+Authentication is delegated: yakanban stores no credentials and falls back to
+`gh auth token`, so a run without a token environment variable and without the
+GitHub CLI on PATH exits 4.
+
+This file is generated from the repository's own sources at build time. It
+describes {{ .Title }} {{ .Version }}.
+
+## Start here
+
+- [Install and quick start]({{ .Repo }}/blob/main/README.md#install): the install commands and the first five commands to run
+- [Authentication]({{ .Repo }}/blob/main/README.md#authentication): no credentials are stored; a token comes from `$YAKANBAN_GITHUB_TOKEN`, `$GH_TOKEN` or `$GITHUB_TOKEN`, and otherwise from `gh auth token`, so the GitHub CLI is a prerequisite unless one of those is set. Projects v2 needs its own scope: `gh auth refresh -s project`
+- [Command reference]({{ .Repo }}/blob/main/README.md#commands): every command, and the global flags (`--json`, `--compact`, `--table`, `--no-color`, `--refresh`, `--no-cache`) that all of them accept
+- [Exit codes]({{ .Repo }}/blob/main/README.md#exit-codes): the programmatic contract — {{ .ExitCodeSummary }}
+
+## Agent instructions
+
+- [yakanban skill]({{ .Repo }}/blob/main/skills/yakanban/SKILL.md): the decision tree, the claim protocol and the exit codes, for any task or board work
+- [yakanban-based-development skill]({{ .Repo }}/blob/main/skills/yakanban-based-development/SKILL.md): the autonomous, parallel-safe loop — pick, branch, implement, merge, done — with the handoff protocol for anything needing a human
+- [Working with agents]({{ .Repo }}/blob/main/docs/agents.md): claims, expiry, and what makes several agents on one board safe
+
+## Reference
+
+- [GitHub mapping]({{ .Repo }}/blob/main/docs/github-mapping.md): which yakanban field lives in which issue or project field
+- [Architecture]({{ .Repo }}/blob/main/docs/architecture.md): the packages, and what adding a provider involves
+- [Configuration]({{ .Repo }}/blob/main/README.md#configuration): `.yakanban.yml`, columns, WIP limits, claim rules and branching models
+
+## Optional
+
+- [What we didn't build]({{ .SiteURL }}#what-we-didnt-build): the deliberate omissions and the reason for each; useful for judging fit, not for driving the tool
+- [Why yakanban exists]({{ .Repo }}/blob/main/README.md#why): background on the model it borrows and the storage it does not
+- [Releases]({{ .Repo }}/releases): binaries for macOS, Linux and Windows

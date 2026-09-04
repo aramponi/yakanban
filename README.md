@@ -1,6 +1,7 @@
 # yakanban — Yet Another Kanban
 
-A Kanban CLI for teams where **humans and AI agents share the same board**.
+<!-- site:blurb -->
+A Kanban CLI for teams where humans and AI agents share the same board.
 
 Agents and developers drive tickets from the terminal. Everyone else keeps
 using the native web UI of the tracker — GitHub Projects today, Jira, Plane or
@@ -41,12 +42,14 @@ a tracker the whole team already has an account for.
 
 macOS, through Homebrew:
 
+<!-- site:install name="Homebrew" -->
 ```bash
 brew install aramponi/tap/yakanban
 ```
 
 Anywhere Go is installed:
 
+<!-- site:install name="go install" -->
 ```bash
 go install github.com/aramponi/yakanban/cmd/yakanban@latest
 ```
@@ -54,6 +57,15 @@ go install github.com/aramponi/yakanban/cmd/yakanban@latest
 Or grab a static binary for macOS, Linux or Windows from the
 [releases](https://github.com/aramponi/yakanban/releases). The Homebrew route
 is macOS-only: it ships as a cask, which is a macOS mechanism.
+
+On macOS or Linux, without Go or Homebrew:
+
+<!-- site:install name="Binary" -->
+```bash
+VERSION=$(curl -fsSL https://api.github.com/repos/aramponi/yakanban/releases/latest | grep -m1 '"tag_name"' | cut -d'"' -f4)
+OS=$(uname -s | tr '[:upper:]' '[:lower:]'); ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+curl -fsSL "https://github.com/aramponi/yakanban/releases/download/$VERSION/yakanban_${VERSION#v}_${OS}_${ARCH}.tar.gz" | tar xz yakanban
+```
 
 The Homebrew command is deliberately the fully qualified one: it trusts that
 single cask on the spot. Homebrew 6 requires third-party taps to be trusted,
@@ -113,6 +125,7 @@ yakanban move 42 done
 
 ## Commands
 
+<!-- site:table id="commands" -->
 | Command | What it does |
 |---|---|
 | `init` | Provision the board and write the descriptor |
@@ -169,6 +182,7 @@ unexpired claim; `--force` overrides it. A plain human edit is never blocked.
 
 ### Exit codes
 
+<!-- site:table id="exit-codes" -->
 | Code | Meaning |
 |---|---|
 | 0 | success |
@@ -411,12 +425,37 @@ Linear are the intended next ones.
 The board runs on yakanban itself:
 [github.com/users/aramponi/projects/2](https://github.com/users/aramponi/projects/2).
 
+## The landing page
+
+[aramponi.github.io/yakanban](https://aramponi.github.io/yakanban) is generated
+from this repository at deploy time, and nothing generated is committed:
+
+```bash
+make site      # ./site/public/{index.html,llms.txt}
+```
+
+The install commands, the command table and the exit codes are lifted out of
+this README, which carries invisible `<!-- site:... -->` markers naming what
+the page takes. Every terminal block on the page is captured by running the
+binary against the board. `site/content.md` holds the page's own prose and
+nothing that is written here as well, so there is no second copy to keep true.
+
+The extraction is assertive: a marker that moves, or a section asking for a
+capture nobody produces, fails generation rather than publishing a page with a
+hole in it. `go test ./internal/site` runs that same build against the real
+sources, so a pull request that breaks it never reaches Pages.
+
+`llms.txt` is served at the site root for agents that want the contract rather
+than the page — the command reference, the exit codes, both skill files and
+the backend mapping.
+
 ## Development
 
 ```bash
 make test      # go test ./...
 make build     # ./bin/yakanban
 make check     # fmt, vet, lint, test
+make site      # the landing page and llms.txt
 ```
 
 `make check` runs golangci-lint, pinned to the same version as CI:
