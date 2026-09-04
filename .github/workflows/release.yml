@@ -22,4 +22,8 @@ jobs:
           version: latest
           args: release --clean
         env:
+          # Publishes the release here…
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # …and the Homebrew formula to aramponi/homebrew-tap, which
+          # GITHUB_TOKEN has no access to.
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}

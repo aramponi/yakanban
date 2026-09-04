@@ -39,12 +39,21 @@ a tracker the whole team already has an account for.
 
 ## Install
 
+macOS, through Homebrew:
+
+```bash
+brew install aramponi/tap/yakanban
+```
+
+Anywhere Go is installed:
+
 ```bash
 go install github.com/aramponi/yakanban/cmd/yakanban@latest
 ```
 
 Or grab a static binary for macOS, Linux or Windows from the
-[releases](https://github.com/aramponi/yakanban/releases).
+[releases](https://github.com/aramponi/yakanban/releases). The Homebrew route
+is macOS-only: it ships as a cask, which is a macOS mechanism.
 
 ### As a GitHub CLI extension
 
