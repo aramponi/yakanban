@@ -81,7 +81,7 @@ func ParseContent(md string) (*Content, error) {
 	}
 
 	inFence := false
-	for _, line := range strings.Split(md, "\n") {
+	for _, line := range splitLines(md) {
 		if strings.HasPrefix(line, "```") {
 			inFence = !inFence
 		}

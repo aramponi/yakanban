@@ -3,6 +3,7 @@ package site
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -242,6 +243,40 @@ func TestInlineMarkdownEscapes(t *testing.T) {
 		if got := inlineHTML(tc.in); got != tc.want {
 			t.Errorf("inlineHTML(%q) = %q, want %q", tc.in, got, tc.want)
 		}
+	}
+}
+
+// TestSourcesParseWithEitherLineEnding: a Windows checkout converts the
+// sources to CRLF, and several patterns here anchor at the end of a line. The
+// generator has to read the same repository on every runner.
+func TestSourcesParseWithEitherLineEnding(t *testing.T) {
+	readme, content := readFile(t, "README.md"), readFile(t, "site", "content.md")
+	crlf := func(s string) string {
+		return strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", "\n"), "\n", "\r\n")
+	}
+
+	lf, err := ParseReadme(readme)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := ParseReadme(crlf(readme))
+	if err != nil {
+		t.Fatalf("README.md with CRLF line endings: %v", err)
+	}
+	if !reflect.DeepEqual(lf, got) {
+		t.Error("README.md parses differently with CRLF line endings")
+	}
+
+	lfContent, err := ParseContent(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotContent, err := ParseContent(crlf(content))
+	if err != nil {
+		t.Fatalf("site/content.md with CRLF line endings: %v", err)
+	}
+	if !reflect.DeepEqual(lfContent, gotContent) {
+		t.Error("site/content.md parses differently with CRLF line endings")
 	}
 }
 

@@ -23,6 +23,18 @@ var (
 	headingLevel = regexp.MustCompile(`^(#{1,6})\s+(.*)$`)
 )
 
+// splitLines cuts text into lines with the line ending thrown away. Every
+// parser here works a line at a time and several of them anchor a pattern at
+// the end of one, so a CRLF checkout — which is what a Windows runner gets by
+// default — would otherwise leave a stray carriage return outside the match.
+func splitLines(s string) []string {
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		lines[i] = strings.TrimSuffix(line, "\r")
+	}
+	return lines
+}
+
 // inlineHTML renders one line of inline Markdown. Code spans are extracted
 // first and put back last, so their contents are never treated as markup.
 func inlineHTML(s string) string {
@@ -49,7 +61,7 @@ func inlineHTML(s string) string {
 // section splitter before they reach here.
 func blocksHTML(md string) string {
 	var out strings.Builder
-	lines := strings.Split(strings.TrimSpace(md), "\n")
+	lines := splitLines(strings.TrimSpace(md))
 
 	for i := 0; i < len(lines); i++ {
 		line := strings.TrimRight(lines[i], " ")
@@ -101,7 +113,7 @@ func codeHTML(lang, code string) string {
 	}
 	var out strings.Builder
 	out.WriteString("<pre class=\"console\"><code>")
-	for i, line := range strings.Split(code, "\n") {
+	for i, line := range splitLines(code) {
 		if i > 0 {
 			out.WriteString("\n")
 		}

@@ -47,7 +47,7 @@ type Readme struct {
 // ParseReadme reads the marked-up regions of README.md.
 func ParseReadme(md string) (*Readme, error) {
 	r := &Readme{Tables: map[string]Table{}}
-	lines := strings.Split(md, "\n")
+	lines := splitLines(md)
 
 	for i := 0; i < len(lines); i++ {
 		m := markerRe.FindStringSubmatch(lines[i])
