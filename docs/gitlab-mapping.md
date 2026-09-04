@@ -1,10 +1,11 @@
-# GitLab mapping — design pending live verification
+# GitLab mapping
 
-This is the proposed mapping for #7, reviewed against GitLab's official
-API documentation on 2026-09-05. **It is not a verified adapter contract.**
-No authenticated GitLab test project was available during this work. Every
-live check below is pending; documentation examples are not captured fixtures.
-Implementation ticket #9 must not be called complete on this evidence.
+This mapping was exercised on 2026-09-05 (2026-09-04 UTC) against the authorized
+`aramponi/mysandbox` project on gitlab.com, running GitLab 19.4.0-pre. The
+namespace API reports `plan: free`; the caller has Owner access. Complete
+responses were captured for offline replay, with token fields redacted.
+Premium/Ultimate and self-managed installations were not available for live
+testing; their documented behavior is identified separately below.
 
 ## Board ownership
 
@@ -32,7 +33,8 @@ See [scoped labels](https://docs.gitlab.com/user/project/labels/#scoped-labels).
 
 ## Field table
 
-All mappings in this table require live validation. “Cannot” is a deliberate
+Free issue/board/label/date/estimate/delete mappings below were exercised live.
+Paid-tier mappings are documentation-derived. “Cannot” is a deliberate
 adapter limitation, not a claim that no GitLab API could ever express it.
 
 | Domain field | Free | Premium / Ultimate | Decision and limitation |
@@ -66,7 +68,7 @@ must also be checked when capturing the Free refusal.
 
 ## Claims: refuse rather than hide a lock in user content
 
-Claims remain unsupported on every tier in this proposal. Scoped labels cannot
+Claims remain unsupported on every tier in this mapping. Scoped labels cannot
 store an expiry. An editable description marker risks removal, malformed data
 and lost user edits. Marker comments avoid rewriting the description but still
 allow duplicates, deletion and races, and require a new ordering/ownership
@@ -116,35 +118,43 @@ Board and list reads use the existing decorator. Get and writes stay live.
 Multi-call operations are not transactions: identify an already-created issue
 in a partial-failure error, and never blindly retry its POST.
 
-## Findings that block #9's unchanged-port acceptance criterion
+## Port findings and generic changes required by #9
 
 The current `init` hardcodes GitHub owner/repository/project-number settings,
 and has no generic provider option input despite `BootstrapOptions.Options`.
 Self-managed GitLab provisioning cannot be registered as just an adapter today.
-A generic provider settings mechanism should be agreed before implementing it.
+The implementation will add generic `init --set key=value` provider settings.
+This is an explicit CLI port finding, not a GitLab-only switch.
 
 The service stamps Started/Completed as writable fields on transitions, but
 GitLab's native closed timestamp is read-only and no Started mapping is chosen.
 The current capability vocabulary has no way to express this distinction.
-The port needs a provider-agnostic policy for automatic timestamps versus
-explicit date edits; silently dropping them in an adapter would lose data.
+Ticket #8 adds a generic workflow-date capability: automatic stamps are only
+written when supported, and explicit date edits otherwise fail with a reason.
+GitLab reads `closed_at` after close/reopen and never silently drops explicit
+date edits.
 
-## Required live evidence before settling the mapping
+## Live evidence and remaining coverage
 
-Capture complete request/response bodies (without tokens), status codes and
-pagination headers from a disposable, explicitly authorized project. Record
-host/version, project tier and caller role alongside fixtures in `testdata/`.
+Captured full responses and pagination headers are replayed by the adapter tests.
+The sandbox remains available for repeatable manual validation; tests never use
+its credentials or contact it. Evidence captured so far:
 
-- [ ] Adopt a board; add/reorder a column in the web UI and refresh it here.
-- [ ] Capture Open/Closed, hidden endpoints, label lists and scoped boards.
-- [ ] Create/get/list/update/delete issues; verify null fields and empty lists.
-- [ ] Preserve unrelated labels; reproduce conflicting Free status labels.
-- [ ] Set/reset native estimate and due date; exercise invalid input.
-- [ ] Set/unset assignees and verify Free cardinality refusal.
-- [ ] Capture Free directional-link refusal; do not use `relates_to` as fallback.
-- [ ] Capture paid directional links and scope exclusivity before advertising them.
-- [ ] Verify plan discovery with a normal project user's permissions.
-- [ ] Close/reopen and observe native timestamps; resolve the port finding above.
-- [ ] Verify environment-token and glab authentication, including self-managed host.
-- [ ] Replay captured responses offline, including partial success, denied writes,
-      null payloads and pagination, through the real mapping code.
+- Board creation, label-list ordering, implicit Open/Closed endpoints.
+- Create/get/list/update/delete, including 204 deletion and subsequent 404.
+- Free accepted both Doing/Review and priority::medium/priority::high labels
+  simultaneously: neither field is exclusive on this plan.
+- A directional issue-link POST returned **403**, with the message
+  `Blocked issues not available for current license`; relates_to returned 201.
+- Native 4h estimate, reset, and invalid estimate (400).
+- Due-date clearing with an empty string, assignee clearing with an empty array.
+- Close/reopen returned and then cleared native closed_at.
+- Issue-list pagination returned X-Next-Page; page two contained the other issue.
+- Namespace plan discovery succeeded for the authorized Owner account.
+- glab config get token --host gitlab.com returned the existing login token
+  without persisting a yakanban credential.
+
+Remaining live coverage: paid dependency writes, paid scope exclusivity,
+self-managed authentication, non-Owner plan visibility, and multi-assignee
+license behavior. These must not be described as live-verified. The adapter
+will refuse unavailable or unknown capabilities with the precise known cause.
