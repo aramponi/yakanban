@@ -29,3 +29,6 @@ jobs:
           # …and the Homebrew formula to aramponi/homebrew-tap, which
           # GITHUB_TOKEN has no access to.
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # …and the Scoop manifest to aramponi/scoop-bucket, likewise out of
+          # GITHUB_TOKEN's reach.
+          SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}

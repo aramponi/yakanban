@@ -47,6 +47,14 @@ macOS, through Homebrew:
 brew install aramponi/tap/yakanban
 ```
 
+Windows, through Scoop:
+
+<!-- site:install name="Scoop" -->
+```powershell
+scoop bucket add aramponi https://github.com/aramponi/scoop-bucket
+scoop install yakanban
+```
+
 Anywhere Go is installed:
 
 <!-- site:install name="go install" -->
@@ -55,8 +63,18 @@ go install github.com/aramponi/yakanban/cmd/yakanban@latest
 ```
 
 Or grab a static binary for macOS, Linux or Windows from the
-[releases](https://github.com/aramponi/yakanban/releases). The Homebrew route
-is macOS-only: it ships as a cask, which is a macOS mechanism.
+[releases](https://github.com/aramponi/yakanban/releases). Each packaged route
+covers one platform: Homebrew ships a cask, which is a macOS mechanism, and the
+Scoop bucket carries the Windows build only — amd64, since `windows/arm64` is
+not built.
+
+Neither packager runs the first-login step for you, and Scoop has no equivalent
+of the cask's caveats to remind you. After installing, once:
+
+```powershell
+gh auth login
+gh auth refresh -s project   # Projects v2 needs its own scope
+```
 
 On macOS or Linux, without Go or Homebrew:
 

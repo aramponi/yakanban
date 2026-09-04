@@ -68,6 +68,24 @@ homebrew_casks:
         gh auth login
         gh auth refresh -s project   # Projects v2 needs its own scope
 
+scoops:
+  - name: yakanban
+    ids: [yakanban]
+    repository:
+      owner: aramponi
+      name: scoop-bucket
+      branch: main
+      # Same reason as the cask: GITHUB_TOKEN cannot push to another
+      # repository, so the bucket needs a token of its own.
+      token: "{{ .Env.SCOOP_BUCKET_TOKEN }}"
+    homepage: https://github.com/aramponi/yakanban
+    description: Kanban over your real ticket tracker, for humans and AI agents
+    license: MIT
+    commit_author:
+      name: goreleaser
+      email: noreply@github.com
+    commit_msg_template: "yakanban {{ .Tag }}"
+
 checksum:
   name_template: checksums.txt
 
