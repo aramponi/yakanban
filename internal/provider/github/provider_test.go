@@ -81,7 +81,7 @@ func (f *fakeGitHub) handleGraphQL(w http.ResponseWriter, r *http.Request) {
 		payload = `{"data":{}}`
 	}
 	w.Header().Set("Content-Type", "application/json")
-	io.WriteString(w, payload)
+	_, _ = io.WriteString(w, payload)
 }
 
 func (f *fakeGitHub) handleREST(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +92,7 @@ func (f *fakeGitHub) handleREST(w http.ResponseWriter, r *http.Request) {
 	}
 	f.restCalls = append(f.restCalls, restCall{Method: r.Method, Path: r.URL.Path, Body: body})
 	w.Header().Set("Content-Type", "application/json")
-	io.WriteString(w, `{"number":42,"node_id":"I_issue42","html_url":"https://github.com/acme/app/issues/42"}`)
+	_, _ = io.WriteString(w, `{"number":42,"node_id":"I_issue42","html_url":"https://github.com/acme/app/issues/42"}`)
 }
 
 // Captured from the real API: a user-owned project comes back as data *and* a
@@ -269,7 +269,7 @@ func TestUnknownStatusOptionIsRefusedBeforeWriting(t *testing.T) {
 
 func TestGraphQLErrorsSurface(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		io.WriteString(w, `{"errors":[{"type":"FORBIDDEN","message":"Resource not accessible by personal access token (scope)"}]}`)
+		_, _ = io.WriteString(w, `{"errors":[{"type":"FORBIDDEN","message":"Resource not accessible by personal access token (scope)"}]}`)
 	}))
 	defer srv.Close()
 	c := &client{http: srv.Client(), token: "t", graphURL: srv.URL, restBase: srv.URL}
@@ -285,7 +285,7 @@ func TestRateLimitIsReportedClearly(t *testing.T) {
 		w.Header().Set("X-RateLimit-Remaining", "0")
 		w.Header().Set("X-RateLimit-Reset", "1757000000")
 		w.WriteHeader(http.StatusForbidden)
-		io.WriteString(w, `{"message":"API rate limit exceeded"}`)
+		_, _ = io.WriteString(w, `{"message":"API rate limit exceeded"}`)
 	}))
 	defer srv.Close()
 	c := &client{http: srv.Client(), token: "t", graphURL: srv.URL, restBase: srv.URL}
@@ -317,7 +317,7 @@ func asInvalid(err error, target **core.InvalidValueError) bool {
 // for every project owned by a person rather than an organization.
 func TestPartialGraphQLDataIsKept(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		io.WriteString(w, `{"errors":[{"type":"NOT_FOUND","path":["organization"],
+		_, _ = io.WriteString(w, `{"errors":[{"type":"NOT_FOUND","path":["organization"],
 		  "message":"Could not resolve to an Organization with the login of 'acme'."}],
 		  "data":{"organization":null,"user":{"login":"acme"}}}`)
 	}))

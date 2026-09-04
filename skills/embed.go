@@ -1,6 +1,6 @@
 // Package skills embeds the agent skills bundled with this binary.
 //
-// go:embed can only reach files inside its own package's directory tree, so
+// The go:embed directive can only reach files inside its own package's directory tree, so
 // a package under internal/ (the usual home for Go code here) could never
 // reach skills/*/SKILL.md at the repository root without a copy — and a copy
 // is exactly what would drift out of sync with the prose people actually

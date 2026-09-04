@@ -125,9 +125,7 @@ func (p Preset) Apply(b *Branching) {
 		b.Types.Default = p.policy.DefaultType
 	}
 	if len(b.Types.Match) == 0 {
-		for _, r := range p.policy.Rules {
-			b.Types.Match = append(b.Types.Match, r)
-		}
+		b.Types.Match = append(b.Types.Match, p.policy.Rules...)
 	}
 }
 

@@ -87,12 +87,12 @@ func (p *Printer) JSON(v any) error {
 
 // Printf writes a formatted line to stdout.
 func (p *Printer) Printf(format string, args ...any) {
-	fmt.Fprintf(p.Out, format, args...)
+	_, _ = fmt.Fprintf(p.Out, format, args...)
 }
 
 // Warnf writes a formatted warning to stderr, so it never pollutes piped output.
 func (p *Printer) Warnf(format string, args ...any) {
-	fmt.Fprintf(p.Err, p.paint(ansiYellow, "warning: ")+format+"\n", args...)
+	_, _ = fmt.Fprintf(p.Err, p.paint(ansiYellow, "warning: ")+format+"\n", args...)
 }
 
 func (p *Printer) priorityColor(priority string) string {
@@ -118,7 +118,7 @@ func (p *Printer) Tasks(tasks []core.Task) error {
 		return p.JSON(tasks)
 	case FormatCompact:
 		for _, t := range tasks {
-			fmt.Fprintln(p.Out, p.compactLine(t))
+			_, _ = fmt.Fprintln(p.Out, p.compactLine(t))
 		}
 		return nil
 	default:
@@ -157,14 +157,14 @@ func (p *Printer) compactLine(t core.Task) string {
 
 func (p *Printer) taskTable(tasks []core.Task) error {
 	if len(tasks) == 0 {
-		fmt.Fprintln(p.Out, p.Dim("no tasks"))
+		_, _ = fmt.Fprintln(p.Out, p.Dim("no tasks"))
 		return nil
 	}
 	tw := tabwriter.NewWriter(p.Out, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(tw, p.Dim("ID\tSTATUS\tPRIORITY\tTITLE\tTAGS\tASSIGNEES\tFLAGS"))
+	_, _ = fmt.Fprintln(tw, p.Dim("ID\tSTATUS\tPRIORITY\tTITLE\tTAGS\tASSIGNEES\tFLAGS"))
 	for _, t := range tasks {
 		flags := p.flags(t)
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			t.ID,
 			dash(t.Status),
 			p.paint(p.priorityColor(t.Priority), dash(t.Priority)),
@@ -201,7 +201,7 @@ func (p *Printer) Task(t core.Task) error {
 	case FormatJSON:
 		return p.JSON(t)
 	case FormatCompact:
-		fmt.Fprintln(p.Out, p.compactLine(t))
+		_, _ = fmt.Fprintln(p.Out, p.compactLine(t))
 		return nil
 	}
 	tw := tabwriter.NewWriter(p.Out, 0, 4, 2, ' ', 0)
@@ -209,9 +209,9 @@ func (p *Printer) Task(t core.Task) error {
 		if strings.TrimSpace(v) == "" {
 			return
 		}
-		fmt.Fprintf(tw, "%s\t%s\n", p.Dim(k), v)
+		_, _ = fmt.Fprintf(tw, "%s\t%s\n", p.Dim(k), v)
 	}
-	fmt.Fprintf(p.Out, "%s %s\n\n", p.Bold("#"+t.ID), p.Bold(t.Title))
+	_, _ = fmt.Fprintf(p.Out, "%s %s\n\n", p.Bold("#"+t.ID), p.Bold(t.Title))
 	row("Status", t.Status)
 	row("Priority", p.paint(p.priorityColor(t.Priority), t.Priority))
 	row("Class", t.Class)
@@ -241,7 +241,7 @@ func (p *Printer) Task(t core.Task) error {
 		return err
 	}
 	if strings.TrimSpace(t.Body) != "" {
-		fmt.Fprintf(p.Out, "\n%s\n%s\n", p.Dim("─── body ───"), strings.TrimRight(t.Body, "\n"))
+		_, _ = fmt.Fprintf(p.Out, "\n%s\n%s\n", p.Dim("─── body ───"), strings.TrimRight(t.Body, "\n"))
 	}
 	return nil
 }
@@ -256,17 +256,17 @@ func (p *Printer) Summary(s core.Summary) error {
 		for _, c := range s.Columns {
 			parts = append(parts, fmt.Sprintf("%s:%d", c.Status.Name, c.Count))
 		}
-		fmt.Fprintf(p.Out, "%s\t%s\ttotal:%d\tblocked:%d\toverdue:%d\n",
+		_, _ = fmt.Fprintf(p.Out, "%s\t%s\ttotal:%d\tblocked:%d\toverdue:%d\n",
 			s.Board.Name, strings.Join(parts, " "), s.Total, s.Blocked, s.Overdue)
 		return nil
 	}
-	fmt.Fprintf(p.Out, "%s %s\n", p.Bold(s.Board.Name), p.Dim("("+s.Board.Provider+")"))
+	_, _ = fmt.Fprintf(p.Out, "%s %s\n", p.Bold(s.Board.Name), p.Dim("("+s.Board.Provider+")"))
 	if s.Board.URL != "" {
-		fmt.Fprintf(p.Out, "%s\n", p.Dim(s.Board.URL))
+		_, _ = fmt.Fprintf(p.Out, "%s\n", p.Dim(s.Board.URL))
 	}
-	fmt.Fprintln(p.Out)
+	_, _ = fmt.Fprintln(p.Out)
 	tw := tabwriter.NewWriter(p.Out, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(tw, p.Dim("COLUMN\tTASKS\tWIP\tBLOCKED\tCLAIMED"))
+	_, _ = fmt.Fprintln(tw, p.Dim("COLUMN\tTASKS\tWIP\tBLOCKED\tCLAIMED"))
 	for _, c := range s.Columns {
 		wip := p.Dim("—")
 		if c.Status.WIPLimit > 0 {
@@ -275,13 +275,13 @@ func (p *Printer) Summary(s core.Summary) error {
 				wip = p.paint(ansiRed, wip+" over")
 			}
 		}
-		fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\n", c.Status.Name, c.Count, wip,
+		_, _ = fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\n", c.Status.Name, c.Count, wip,
 			zeroDash(c.Blocked), zeroDash(c.Claimed))
 	}
 	if err := tw.Flush(); err != nil {
 		return err
 	}
-	fmt.Fprintf(p.Out, "\n%s %d   %s %d   %s %d\n",
+	_, _ = fmt.Fprintf(p.Out, "\n%s %d   %s %d   %s %d\n",
 		p.Dim("total"), s.Total,
 		p.Dim("blocked"), s.Blocked,
 		p.Dim("overdue"), s.Overdue)
@@ -293,7 +293,7 @@ func (p *Printer) Summary(s core.Summary) error {
 			}
 		}
 		if len(parts) > 0 {
-			fmt.Fprintf(p.Out, "%s %s\n", p.Dim("priorities"), strings.Join(parts, "  "))
+			_, _ = fmt.Fprintf(p.Out, "%s %s\n", p.Dim("priorities"), strings.Join(parts, "  "))
 		}
 	}
 	return nil

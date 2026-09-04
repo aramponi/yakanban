@@ -35,19 +35,19 @@ func newBranchServer(t *testing.T, linkReply string) *branchServer {
 		w.Header().Set("Content-Type", "application/json")
 		switch {
 		case strings.Contains(call.Query, "fragment P on ProjectV2"):
-			io.WriteString(w, projectFixture)
+			_, _ = io.WriteString(w, projectFixture)
 		case strings.Contains(call.Query, "createLinkedBranch"):
-			io.WriteString(w, b.linkReply)
+			_, _ = io.WriteString(w, b.linkReply)
 		case strings.Contains(call.Query, "deleteLinkedBranch"):
-			io.WriteString(w, `{"data":{"deleteLinkedBranch":{"clientMutationId":null}}}`)
+			_, _ = io.WriteString(w, `{"data":{"deleteLinkedBranch":{"clientMutationId":null}}}`)
 		// Both issue queries ask for linkedBranches, so the full one has to be
 		// matched first: only it reaches into the project items.
 		case strings.Contains(call.Query, "projectItems"):
-			io.WriteString(w, issueWithBranchFixture)
+			_, _ = io.WriteString(w, issueWithBranchFixture)
 		case strings.Contains(call.Query, "linkedBranches"):
-			io.WriteString(w, linkedBranchesFixture)
+			_, _ = io.WriteString(w, linkedBranchesFixture)
 		default:
-			io.WriteString(w, `{"data":{}}`)
+			_, _ = io.WriteString(w, `{"data":{}}`)
 		}
 	})
 	b.server = httptest.NewServer(mux)
