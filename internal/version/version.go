@@ -1,7 +1,10 @@
 // Package version carries the build identity, stamped at link time.
 package version
 
-import "runtime/debug"
+import (
+	"runtime/debug"
+	"strings"
+)
 
 // Version is overridden with -ldflags "-X .../version.Version=v1.2.3".
 var Version = "dev"
@@ -17,7 +20,9 @@ func String() string {
 			v = info.Main.Version
 		}
 	}
-	if Commit != "" {
+	// An untagged build resolves Version to the short SHA, which would
+	// otherwise be printed twice.
+	if Commit != "" && !strings.HasPrefix(v, Commit) {
 		return v + " (" + Commit + ")"
 	}
 	return v
