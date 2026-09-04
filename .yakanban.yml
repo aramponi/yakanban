@@ -1,0 +1,38 @@
+# yakanban board descriptor — https://github.com/aramponi/yakanban
+# The backend below is the source of truth; this file only pins the vocabulary.
+version: 1
+provider: github
+board:
+    name: yakanban
+statuses:
+    - name: Todo
+      initial: true
+    - name: In Progress
+      require_claim: true
+    - name: Done
+      terminal: true
+priorities:
+    - low
+    - medium
+    - high
+    - critical
+classes:
+    - name: expedite
+      wip_limit: 1
+      bypass_column_wip: true
+    - name: fixed-date
+    - name: standard
+    - name: intangible
+defaults:
+    status: Todo
+    priority: medium
+    class: standard
+claim_timeout: 1h0m0s
+cache:
+    enabled: true
+    ttl: 1m0s
+providers:
+    github:
+        owner: aramponi
+        project_number: 2
+        repo: yakanban

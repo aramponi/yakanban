@@ -104,6 +104,7 @@ Run it again with --force after changing the descriptor to re-apply it.`,
 			}
 			cfg.Statuses = adoptStatuses(cfg.Statuses, board.Statuses)
 			cfg.Defaults.Status = cfg.Statuses[0].Name
+			cfg.Defaults.Review = adoptReview(cfg.Defaults.Review, cfg.Statuses)
 			if err := cfg.Save(target); err != nil {
 				return err
 			}
@@ -175,23 +176,46 @@ func adoptStatuses(local, live []core.Status) []core.Status {
 		byName[strings.ToLower(s.Name)] = s
 	}
 	out := make([]core.Status, 0, len(live))
-	matched := false
 	for _, s := range live {
 		if l, ok := byName[strings.ToLower(s.Name)]; ok {
 			l.Name = s.Name
 			out = append(out, l)
-			matched = true
 			continue
 		}
 		out = append(out, s)
 	}
-	if !matched {
-		// A pre-existing project with entirely different columns: assume the
-		// usual shape rather than leaving the board without endpoints.
+	// A board must have endpoints: without an initial column nothing ever
+	// stamps Started, and without a terminal one nothing stamps Completed.
+	// Adoption can drop them — a project with no Backlog column loses the
+	// column the descriptor had marked as intake.
+	if !anyStatus(out, func(s core.Status) bool { return s.Initial }) {
 		out[0].Initial = true
+	}
+	if !anyStatus(out, func(s core.Status) bool { return s.Terminal }) {
 		out[len(out)-1].Terminal = true
 	}
 	return out
+}
+
+func anyStatus(statuses []core.Status, pred func(core.Status) bool) bool {
+	for _, s := range statuses {
+		if pred(s) {
+			return true
+		}
+	}
+	return false
+}
+
+// adoptReview keeps the handoff column only if the adopted board actually has
+// it. Leaving it pointing at a column the project does not have would make
+// `handoff` fail with a confusing message rather than a clear one.
+func adoptReview(configured string, statuses []core.Status) string {
+	for _, s := range statuses {
+		if strings.EqualFold(s.Name, configured) {
+			return s.Name
+		}
+	}
+	return ""
 }
 
 func applyWIPLimits(cfg *config.Config, specs []string) error {

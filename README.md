@@ -235,6 +235,11 @@ implementing `core.Provider` plus one line in the registry — see
 [docs/architecture.md](docs/architecture.md#adding-a-provider). Jira, Plane and
 Linear are the intended next ones.
 
+## Roadmap
+
+The board runs on yakanban itself:
+[github.com/users/aramponi/projects/2](https://github.com/users/aramponi/projects/2).
+
 ## Development
 
 ```bash
