@@ -124,12 +124,23 @@ dependencies are all done, claims it, and reads it back to confirm the claim is
 yours. A task somebody took in the meantime is skipped automatically. It prints
 the full task, so there is usually no need to `show` it again.
 
-### 2) Create a worktree
+### 2) Create a branch and a worktree
+
+Let yakanban name the branch and attach it to the ticket, so the work shows in
+the issue's Development section and the pull request closes the issue on merge:
 
 ```bash
-git worktree add ../task-<ID> -b task/<ID>-<kebab-description>
+BRANCH=$(yakanban branch <ID> --claim <agent>)
+git worktree add ../task-<ID> -b "$BRANCH" origin/main
 cd ../task-<ID>
 ```
+
+`yakanban pick --claim <agent> --status todo --move in-progress --branch` does
+the pick and the branch in one call.
+
+**Do not invent the branch name yourself** — it comes from the board's template,
+so every agent on the repository uses the same convention. No `git fetch` is
+needed: the branch starts at a commit you already have.
 
 Skip the worktree only for work that cannot conflict (a research note, no
 tracked files). If you touch tracked code or config, use one.

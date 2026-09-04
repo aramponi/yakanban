@@ -20,6 +20,12 @@ type Options struct {
 	DefaultClass    string
 	ClaimTimeout    time.Duration
 	Now             func() time.Time
+
+	// BranchTemplate and WorktreeTemplate name the branch and working
+	// directory of a task. Empty means the feature is unconfigured, not that
+	// a default should be invented behind the user's back.
+	BranchTemplate   string
+	WorktreeTemplate string
 }
 
 // Service is the application-side facade used by the CLI.

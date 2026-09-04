@@ -100,6 +100,7 @@ yakanban move 42 done
 | `edit ID` | Change fields, claim, block, append to the body |
 | `move ID STATUS` | Change column (`--next` / `--prev` also work) |
 | `pick --claim AGENT` | Claim the next available task, atomically |
+| `branch ID` | Create a branch and attach it to the ticket |
 | `handoff ID --claim AGENT` | Park a task with a note for whoever picks it up |
 | `delete ID --yes` | Close the issue and archive its board item |
 | `board` | Column counts, WIP pressure, blocked and overdue |
@@ -154,6 +155,40 @@ unexpired claim; `--force` overrides it. A plain human edit is never blocked.
 | 4 | authentication or scope problem |
 | 5 | the task is claimed by another agent |
 | 6 | the provider cannot express what you asked for |
+
+## Branches
+
+`yakanban branch` creates a branch on the backend and attaches it to the
+ticket — GitHub's linked branches, shown in an issue's Development section. The
+work becomes visible to people who have never heard of yakanban, and the pull
+request closes the issue on merge without a `closes #N` keyword.
+
+```bash
+BRANCH=$(yakanban branch 42 --claim "$AGENT")
+git worktree add ../app-task-42 -b "$BRANCH" origin/main
+```
+
+The name is decided locally, from a template, and handed to the backend — never
+read back from it. That is what lets an agent create its local branch straight
+away, from a commit it already has, with no fetch in between.
+
+```yaml
+branching:
+  templates:
+    branch: "{{.ID}}-{{.Slug}}"          # matches what GitHub generates itself
+    worktree: "../{{.Repo}}-task-{{.ID}}"
+```
+
+Templates can use `.ID`, `.Slug`, `.Title`, `.Priority`, `.Class`, `.Agent`,
+`.Board` and `.Repo`. `--dry-run --json` prints the names that would be used
+without creating anything.
+
+The base commit defaults to the upstream of the current branch and is always
+resolved through the **remote**: a commit you have not pushed does not exist
+for the backend, and the API error for that says nothing useful.
+
+Branches are an optional capability. A provider that has no such notion reports
+it rather than silently doing nothing.
 
 ## Configuration
 

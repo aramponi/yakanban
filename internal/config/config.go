@@ -37,8 +37,9 @@ type Config struct {
 	Classes    []core.Class  `yaml:"classes,omitempty"`
 	Defaults   Defaults      `yaml:"defaults"`
 
-	ClaimTimeout Duration `yaml:"claim_timeout,omitempty"`
-	Cache        Cache    `yaml:"cache,omitempty"`
+	ClaimTimeout Duration  `yaml:"claim_timeout,omitempty"`
+	Cache        Cache     `yaml:"cache,omitempty"`
+	Branching    Branching `yaml:"branching,omitempty"`
 
 	// Providers holds the settings of each backend, keyed by provider name,
 	// so a board can be re-pointed without rewriting the whole file.
@@ -62,6 +63,18 @@ type Defaults struct {
 	// Review is where `yakanban handoff` parks a task: the waiting room for
 	// work that is ready to merge, or blocked on a human.
 	Review string `yaml:"review,omitempty"`
+}
+
+// Branching says how a task becomes a branch and a working directory.
+type Branching struct {
+	Templates Templates `yaml:"templates,omitempty"`
+}
+
+// Templates name the branch and the worktree of a task. They are Go text
+// templates so a team can match conventions yakanban has never heard of.
+type Templates struct {
+	Branch   string `yaml:"branch,omitempty"`
+	Worktree string `yaml:"worktree,omitempty"`
 }
 
 // Cache configures the local read-through cache.
@@ -121,7 +134,13 @@ func Default(name, provider string) *Config {
 		Defaults:     Defaults{Status: "Backlog", Priority: "medium", Class: "standard", Review: "Review"},
 		ClaimTimeout: Duration(time.Hour),
 		Cache:        Cache{Enabled: true, TTL: Duration(60 * time.Second)},
-		Providers:    map[string]map[string]any{},
+		// The default branch name matches what GitHub itself generates from an
+		// issue, so the Development section looks native.
+		Branching: Branching{Templates: Templates{
+			Branch:   "{{.ID}}-{{.Slug}}",
+			Worktree: "../{{.Repo}}-task-{{.ID}}",
+		}},
+		Providers: map[string]map[string]any{},
 	}
 }
 

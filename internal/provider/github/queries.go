@@ -45,6 +45,7 @@ query($owner:String!, $repo:String!, $number:Int!) {
     issue(number:$number) {
       id
       ...IssueFields
+      linkedBranches(first:20) { nodes { id ref { name prefix target { oid } } } }
       projectItems(first:20) {
         nodes {
           id
@@ -111,5 +112,27 @@ const updateFieldOptionsMutation = `
 mutation($field:ID!, $options:[ProjectV2SingleSelectFieldOptionInput!]!) {
   updateProjectV2Field(input:{fieldId:$field, singleSelectOptions:$options}) {
     projectV2Field { ... on ProjectV2SingleSelectField { id name options { id name } } }
+  }
+}`
+
+const createLinkedBranchMutation = `
+mutation($issue:ID!, $oid:GitObjectID!, $name:String) {
+  createLinkedBranch(input:{issueId:$issue, oid:$oid, name:$name}) {
+    linkedBranch { id ref { name prefix target { oid } } }
+  }
+}`
+
+const deleteLinkedBranchMutation = `
+mutation($branch:ID!) {
+  deleteLinkedBranch(input:{linkedBranchId:$branch}) { clientMutationId }
+}`
+
+const linkedBranchesQuery = `
+query($owner:String!, $repo:String!, $number:Int!) {
+  repository(owner:$owner, name:$repo) {
+    issue(number:$number) {
+      id
+      linkedBranches(first:20) { nodes { id ref { name prefix target { oid } } } }
+    }
   }
 }`

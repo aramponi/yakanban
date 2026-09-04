@@ -17,6 +17,7 @@ const (
 	CapDueDate
 	CapDelete
 	CapArchive
+	CapLinkedBranch
 )
 
 // Has reports whether c includes every capability in want.
@@ -69,6 +70,68 @@ type BootstrapOptions struct {
 	Classes    []Class
 	// Options holds provider-specific switches parsed from --set key=value.
 	Options map[string]string
+}
+
+// Branch is a source branch attached to a task by the backend — GitHub's
+// linked branches, shown in an issue's Development section.
+type Branch struct {
+	// ID is the backend's handle on the link, needed to undo it.
+	ID string `json:"id"`
+	// Name is the branch name without its ref prefix.
+	Name string `json:"name"`
+	// Ref is the fully qualified ref, e.g. refs/heads/12-fix-login.
+	Ref string `json:"ref,omitempty"`
+	// OID is the commit the branch starts at.
+	OID string `json:"oid,omitempty"`
+}
+
+// BranchRequest asks a backend to attach a branch to a task.
+type BranchRequest struct {
+	// Name is chosen by the caller. Backends that would otherwise invent one
+	// must use this instead: an agent has to know the name before the branch
+	// exists, so it never has to fetch to discover it.
+	Name string
+	// BaseOID is the commit the branch starts at. It must already exist on
+	// the backend.
+	BaseOID string
+}
+
+// Brancher is implemented by providers whose backend can attach a branch to a
+// task. It is deliberately not part of Provider: Jira and Linear have branch
+// integrations, but not this model, and the domain must not assume every
+// tracker sits on top of a git forge.
+type Brancher interface {
+	// CreateBranch creates the branch and attaches it to the task.
+	CreateBranch(ctx context.Context, id string, req BranchRequest) (*Branch, error)
+	// Branches lists the branches attached to a task.
+	Branches(ctx context.Context, id string) ([]Branch, error)
+	// UnlinkBranch detaches a branch from a task. It does not delete the ref;
+	// callers must say so, because the two are easy to confuse.
+	UnlinkBranch(ctx context.Context, branchID string) error
+}
+
+// Unwrapper is implemented by decorators such as the cache, so an optional
+// interface can be looked for on the provider they wrap.
+type Unwrapper interface {
+	Unwrap() Provider
+}
+
+// AsBrancher returns the Brancher behind p, seeing through decorators.
+//
+// A decorator must not answer for a capability its inner provider lacks, so
+// the check walks down rather than testing the outermost value.
+func AsBrancher(p Provider) (Brancher, bool) {
+	for p != nil {
+		if b, ok := p.(Brancher); ok {
+			return b, true
+		}
+		u, ok := p.(Unwrapper)
+		if !ok {
+			return nil, false
+		}
+		p = u.Unwrap()
+	}
+	return nil, false
 }
 
 // SettingsWriter is implemented by providers that can hand back the

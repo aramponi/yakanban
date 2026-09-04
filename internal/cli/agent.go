@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -8,12 +9,15 @@ import (
 
 	"github.com/aramponi/yakanban/internal/app"
 	"github.com/aramponi/yakanban/internal/core"
+	"github.com/aramponi/yakanban/internal/gitrepo"
 )
 
 func newPickCommand(e *env) *cobra.Command {
 	var (
-		o      app.PickOptions
-		noBody bool
+		o          app.PickOptions
+		noBody     bool
+		withBranch bool
+		from       string
 	)
 	cmd := &cobra.Command{
 		Use:   "pick",
@@ -38,7 +42,23 @@ run against the same board.`,
 			if noBody && e.format() == "human" {
 				task.Body = ""
 			}
-			return p.Task(*task)
+			if !withBranch {
+				return p.Task(*task)
+			}
+			branch, worktree, err := e.attachBranch(cmd.Context(), s, task.ID, o.Agent, from)
+			if err != nil {
+				// The task is claimed and moved; saying only "branch failed"
+				// would leave the agent unsure whether it owns the task.
+				return fmt.Errorf("picked and claimed %s, but the branch could not be created: %w", task.ID, err)
+			}
+			if e.format() == "json" {
+				return p.JSON(map[string]any{"task": task, "branch": branch, "worktree": worktree})
+			}
+			if err := p.Task(*task); err != nil {
+				return err
+			}
+			p.Printf("\nbranch %s\n", branch.Name)
+			return nil
 		},
 	}
 	fl := cmd.Flags()
@@ -47,6 +67,8 @@ run against the same board.`,
 	fl.StringVar(&o.Move, "move", "", "also move the picked task to this column")
 	fl.StringSliceVar(&o.Tags, "tags", nil, "only consider tasks carrying one of these tags")
 	fl.BoolVar(&noBody, "no-body", false, "suppress the task body in the output")
+	fl.BoolVar(&withBranch, "branch", false, "also create and attach a branch for the picked task")
+	fl.StringVar(&from, "from", "", "base branch or commit for --branch (default: the upstream of the current branch)")
 	_ = cmd.MarkFlagRequired("claim")
 	return cmd
 }
@@ -90,6 +112,34 @@ on a decision, or blocked on something outside your control.`,
 	fl.BoolVarP(&o.Timestamp, "timestamp", "t", false, "prefix the note with a timestamp")
 	_ = cmd.MarkFlagRequired("claim")
 	return cmd
+}
+
+// attachBranch creates the branch of a freshly picked task, resolving the base
+// commit from the local checkout.
+func (e *env) attachBranch(ctx context.Context, s *session, id, agent, from string) (*core.Branch, string, error) {
+	repo := gitrepo.Open(e.workDir())
+	o := app.BranchOptions{Agent: agent}
+	if name, err := repo.Name(); err == nil {
+		o.Repo = name
+	}
+	task, err := s.service.Get(ctx, id)
+	if err != nil {
+		return nil, "", err
+	}
+	worktree, err := s.service.WorktreePath(*task, o)
+	if err != nil {
+		return nil, "", err
+	}
+	oid, _, err := repo.ResolveBase(from)
+	if err != nil {
+		return nil, "", err
+	}
+	o.BaseOID = oid
+	branch, err := s.service.CreateBranch(ctx, id, o)
+	if err != nil {
+		return nil, "", err
+	}
+	return branch, worktree, nil
 }
 
 // reviewColumn resolves where a handoff parks work: the explicit flag, then

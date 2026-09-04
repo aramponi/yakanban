@@ -45,6 +45,12 @@ type Task struct {
 	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
+// MetaLinkedBranches is the Metadata key under which a provider records the
+// branches attached to a task. It is a convention rather than a domain field:
+// most trackers have no such notion, and the ones that do disagree on what a
+// branch is.
+const MetaLinkedBranches = "linked_branches"
+
 // Claim is a soft, expiring lock taken by an agent working on a task.
 // GitHub has no native equivalent, so providers persist it however they can.
 type Claim struct {

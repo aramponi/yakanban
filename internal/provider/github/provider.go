@@ -56,7 +56,8 @@ func (p *Provider) TokenOrigin() string { return p.tokenOrigin }
 // but a real delete is not: GitHub issues are closed and archived instead.
 func (p *Provider) Capabilities() core.Capability {
 	return core.CapClaims | core.CapDependencies | core.CapParent | core.CapBlocked |
-		core.CapEstimate | core.CapClass | core.CapDueDate | core.CapArchive
+		core.CapEstimate | core.CapClass | core.CapDueDate | core.CapArchive |
+		core.CapLinkedBranch
 }
 
 // Board returns the live board description, read from the project itself.
@@ -126,6 +127,9 @@ type issueResult struct {
 		Issue *struct {
 			NodeID string `json:"id"`
 			issueContent
+			LinkedBranches struct {
+				Nodes []linkedBranchNode `json:"nodes"`
+			} `json:"linkedBranches"`
 			ProjectItems struct {
 				Nodes []struct {
 					ID         string `json:"id"`
@@ -171,12 +175,27 @@ func (p *Provider) Get(ctx context.Context, id string) (*core.Task, error) {
 	}
 	task := node.toTask()
 	task.Metadata["node_id"] = issue.NodeID
+	if names := branchNames(issue.LinkedBranches.Nodes); len(names) > 0 {
+		task.Metadata[core.MetaLinkedBranches] = names
+	}
 	if node.ID == "" {
 		// The issue exists but was never added to the board; it has no
 		// workflow state yet. Adding it lazily happens on the first write.
 		task.Metadata["on_board"] = false
 	}
 	return &task, nil
+}
+
+// branchNames lists the branch names attached to an issue, for the metadata
+// the human view surfaces.
+func branchNames(nodes []linkedBranchNode) []string {
+	out := make([]string, 0, len(nodes))
+	for _, n := range nodes {
+		if n.Ref.Name != "" {
+			out = append(out, n.Ref.Name)
+		}
+	}
+	return out
 }
 
 // issuePayload is the REST body used to create or patch an issue.

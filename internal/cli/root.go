@@ -112,10 +112,12 @@ func (e *env) open(ctx context.Context) (*session, error) {
 	}
 	board := mergeBoard(cfg, live)
 	service := app.New(provider, board, app.Options{
-		DefaultStatus:   cfg.Defaults.Status,
-		DefaultPriority: cfg.Defaults.Priority,
-		DefaultClass:    cfg.Defaults.Class,
-		ClaimTimeout:    cfg.ClaimTimeout.Duration(),
+		DefaultStatus:    cfg.Defaults.Status,
+		DefaultPriority:  cfg.Defaults.Priority,
+		DefaultClass:     cfg.Defaults.Class,
+		ClaimTimeout:     cfg.ClaimTimeout.Duration(),
+		BranchTemplate:   cfg.Branching.Templates.Branch,
+		WorktreeTemplate: cfg.Branching.Templates.Worktree,
 	})
 	return &session{cfg: cfg, provider: provider, service: service, store: store}, nil
 }
@@ -230,6 +232,7 @@ only caches reads locally and always writes straight through.`,
 		newEditCommand(e),
 		newMoveCommand(e),
 		newDeleteCommand(e),
+		newBranchCommand(e),
 		newPickCommand(e),
 		newHandoffCommand(e),
 		newBoardCommand(e),

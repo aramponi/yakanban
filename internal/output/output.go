@@ -230,6 +230,7 @@ func (p *Printer) Task(t core.Task) error {
 		}
 		row("Claim", t.Claim.Agent+" ("+state+")")
 	}
+	row("Branches", strings.Join(metaStrings(t.Metadata, core.MetaLinkedBranches), ", "))
 	row("Due", formatDate(t.Due))
 	row("Started", formatDate(t.Started))
 	row("Completed", formatDate(t.Completed))
@@ -296,6 +297,28 @@ func (p *Printer) Summary(s core.Summary) error {
 		}
 	}
 	return nil
+}
+
+// metaStrings reads a list of strings out of Metadata. Metadata is untyped by
+// design, and a round trip through JSON turns []string into []any, so both
+// shapes have to be accepted.
+func metaStrings(meta map[string]any, key string) []string {
+	switch v := meta[key].(type) {
+	case nil:
+		return nil
+	case []string:
+		return v
+	case []any:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
 }
 
 func formatDate(t *time.Time) string {

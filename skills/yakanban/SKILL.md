@@ -60,6 +60,7 @@ cached locally for a minute, writes always go straight through.
 | Block / unblock                     | `yakanban edit ID --block "REASON"` / `--unblock` |
 | Add a dependency / a parent         | `yakanban edit ID --add-dep 12 --parent 7` |
 | Append a progress note              | `yakanban edit ID -a "note" -t --claim $AGENT` |
+| Create a branch for a task          | `yakanban branch ID --claim $AGENT` |
 | Park a task for someone else        | `yakanban handoff ID --claim $AGENT --note "…" -t --release` |
 | Release a claim                     | `yakanban edit ID --release` |
 | Close a task                        | `yakanban delete ID --yes` |

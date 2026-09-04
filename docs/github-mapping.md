@@ -55,6 +55,28 @@ types yakanban does not model (`ProjectV2ItemFieldUserValue`,
 `…RepositoryValue`, `…LabelValue`), which the decoder must skip rather than
 choke on.
 
+## Linked branches
+
+A branch attached to a task is a GitHub *linked branch* — an Issues feature,
+not a Projects one. `createLinkedBranch` takes the branch name from yakanban
+rather than generating its own, so an agent knows the name before the branch
+exists and never has to fetch to discover it.
+
+Two behaviours found by testing against the live API on 2026-09-04, neither of
+them documented anywhere obvious:
+
+- **A branch that already exists on the remote cannot be adopted.** The
+  mutation returns HTTP 200 with `{"createLinkedBranch": {"linkedBranch": null}}`
+  and **no `errors` array**, leaving the branch unlinked. The adapter treats a
+  null `linkedBranch` as a failure; trusting the status code would report
+  success for a link that was never made.
+- **Names are unconstrained beyond git's own rules.** `feature/43-add-search`
+  and `team/backend/fix/45-npe` link fine, and a branch may start from any
+  commit, including the tip of a branch other than the default one.
+
+`deleteLinkedBranch` detaches without deleting the ref — two separate
+operations, and the CLI says so when it detaches.
+
 ## API traffic
 
 | Command | Calls |

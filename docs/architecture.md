@@ -37,9 +37,19 @@ type Provider interface {
 }
 ```
 
-Three optional interfaces sit next to it: `Bootstrapper` (a backend that can
+Optional interfaces sit next to it: `Bootstrapper` (a backend that can
 provision its own board, used by `yakanban init`), `SettingsWriter` (hand back
-the config block to persist afterwards) and `Invalidator` (drop a cache).
+the config block to persist afterwards), `Invalidator` (drop a cache) and
+`Brancher` (attach a source branch to a task).
+
+`Brancher` is deliberately not part of `Provider`. Linked branches are a git
+forge feature; Jira and Linear have branch integrations, but not this model,
+and the domain must not assume every tracker sits on a git host.
+
+Because the cache decorates the provider, an optional interface has to be
+looked for *underneath* the decorator — a decorator must never answer for a
+capability its inner provider lacks. `core.AsBrancher` walks the `Unwrap()`
+chain to do that; new optional ports should follow the same shape.
 
 ### Capabilities rather than a lowest common denominator
 
