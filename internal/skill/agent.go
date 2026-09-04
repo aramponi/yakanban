@@ -23,11 +23,13 @@ const (
 	Claude   Agent = "claude"
 	Codex    Agent = "codex"
 	Cursor   Agent = "cursor"
+	Hermes   Agent = "hermes"
+	Pi       Agent = "pi"
 	OpenClaw Agent = "openclaw"
 )
 
 // Agents lists every agent this package understands, in a stable order.
-var Agents = []Agent{Claude, Codex, Cursor, OpenClaw}
+var Agents = []Agent{Claude, Codex, Cursor, Hermes, Pi, OpenClaw}
 
 // layout is one agent's skill directory convention, plus the executable used
 // to detect it on the machine. Every path below was read from that agent's
@@ -41,6 +43,14 @@ var Agents = []Agent{Claude, Codex, Cursor, OpenClaw}
 //   - Cursor — .cursor/skills and ~/.cursor/skills. Cursor also reads
 //     .agents/skills, but its own directory is the one it documents first
 //     (cursor.com/docs/skills).
+//   - Hermes — .hermes/skills in a git repository, ~/.hermes/skills for the
+//     user (NousResearch/hermes-agent, docs/user-guide/features/skills.md).
+//     Project skills stay inert until `hermes skills trust` runs, which is why
+//     Note exists.
+//   - Pi — .pi/skills in the project, ~/.pi/agent/skills for the user
+//     (pi.dev/docs/latest/skills). Note the extra agent/ segment: pi is the
+//     first agent here whose user-level path is not its project path under
+//     $HOME.
 //   - OpenClaw — the workspace's own skills/ directory, and ~/.openclaw/skills
 //     for --global (docs.openclaw.ai/tools/skills). The project path is the
 //     documented one even though it collides with this repository's own
@@ -50,12 +60,20 @@ type layout struct {
 	binary  string
 	project string // "/"-separated, relative to the project root
 	global  string // "/"-separated, relative to $HOME
+	// projectNote is printed after writing a project-level skill, when the
+	// file alone is not enough for the agent to load it.
+	projectNote string
 }
 
 var layouts = map[Agent]layout{
-	Claude:   {binary: "claude", project: ".claude/skills", global: ".claude/skills"},
-	Codex:    {binary: "codex", project: ".agents/skills", global: ".agents/skills"},
-	Cursor:   {binary: "cursor", project: ".cursor/skills", global: ".cursor/skills"},
+	Claude: {binary: "claude", project: ".claude/skills", global: ".claude/skills"},
+	Codex:  {binary: "codex", project: ".agents/skills", global: ".agents/skills"},
+	Cursor: {binary: "cursor", project: ".cursor/skills", global: ".cursor/skills"},
+	Hermes: {
+		binary: "hermes", project: ".hermes/skills", global: ".hermes/skills",
+		projectNote: "hermes does not load project skills until they are trusted: run `hermes skills trust`",
+	},
+	Pi:       {binary: "pi", project: ".pi/skills", global: ".pi/agent/skills"},
 	OpenClaw: {binary: "openclaw", project: "skills", global: ".openclaw/skills"},
 }
 
@@ -86,22 +104,54 @@ func (a Agent) GlobalDir(home string) string {
 // real PATH.
 type LookPathFunc func(file string) (string, error)
 
-// Present reports whether an agent looks installed on this machine: its
-// executable is on PATH, or its global config directory already exists.
-// This only ever decides a *default* — the set offered by the interactive
-// prompt, or installed to when stdout is not a terminal — an explicit
-// --agent always overrides it.
-func Present(a Agent, home string, lookPath LookPathFunc) bool {
+// ProjectNote returns what still has to happen after a project-level install
+// for the agent to actually load the skill, or "" when writing the file is
+// enough. Reporting "wrote" and stopping would be telling somebody a thing
+// works when nothing will load it.
+func (a Agent) ProjectNote() string { return layouts[a].projectNote }
+
+// Detection is what the machine says about one agent, and why.
+type Detection struct {
+	Agent Agent `json:"agent"`
+	// Found reports whether the agent looks installed.
+	Found bool `json:"found"`
+	// Reason is the evidence, e.g. "codex on PATH" or "~/.claude". It is
+	// shown in the selection menu: without it, an agent yakanban cannot see
+	// and an agent that is genuinely absent look identical.
+	Reason string `json:"reason,omitempty"`
+}
+
+// Detect reports on every known agent, in the order of Agents.
+//
+// This only decides a *default*: the boxes ticked in the selection menu, or
+// the set installed to when nobody can be asked. An explicit --agent always
+// wins over it.
+func Detect(home string, lookPath LookPathFunc) []Detection {
 	if lookPath == nil {
 		lookPath = exec.LookPath
 	}
-	if _, err := lookPath(layouts[a].binary); err == nil {
-		return true
+	out := make([]Detection, 0, len(Agents))
+	for _, a := range Agents {
+		d := Detection{Agent: a}
+		if _, err := lookPath(layouts[a].binary); err == nil {
+			d.Found, d.Reason = true, layouts[a].binary+" on PATH"
+		} else if home != "" {
+			root, _, _ := strings.Cut(layouts[a].global, "/")
+			if st, err := os.Stat(filepath.Join(home, root)); err == nil && st.IsDir() {
+				d.Found, d.Reason = true, "~/"+root
+			}
+		}
+		out = append(out, d)
 	}
-	if home == "" {
-		return false
+	return out
+}
+
+// Present reports whether an agent looks installed on this machine.
+func Present(a Agent, home string, lookPath LookPathFunc) bool {
+	for _, d := range Detect(home, lookPath) {
+		if d.Agent == a {
+			return d.Found
+		}
 	}
-	root, _, _ := strings.Cut(layouts[a].global, "/")
-	st, err := os.Stat(filepath.Join(home, root))
-	return err == nil && st.IsDir()
+	return false
 }

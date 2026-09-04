@@ -361,11 +361,34 @@ yakanban skill check              # exits non-zero when an installed skill is st
 yakanban skill update             # refresh what is installed
 ```
 
-Claude Code, Codex, Cursor and OpenClaw are detected automatically; `--agent`
-names them explicitly and `--path` writes anywhere. A skill file you have
-edited is never overwritten without `--force`: each installed file carries a
-version marker and a hash of the text yakanban wrote, so "stale" and "you
-changed this" are told apart.
+Claude Code, Codex, Cursor, Hermes, Pi and OpenClaw are supported. Run
+`skill install` in a terminal and it shows every one of them, with the
+detected ones already ticked and the evidence beside each:
+
+```
+Install the yakanban skills for:
+
+  [x] claude    found: ~/.claude
+  [x] codex     found: codex on PATH
+  [ ] cursor    not detected
+  [ ] hermes    not detected
+  [x] pi        found: pi on PATH
+  [ ] openclaw  not detected
+
+Toggle with a number, Enter to install, q to cancel:
+```
+
+Detection proposes; you decide. `--agent` gives the same answer up front and
+skips the menu, `--path` writes anywhere, and a piped or CI run installs for
+everything detected without asking.
+
+A skill file you have edited is never overwritten without `--force`: each
+installed file carries a version marker and a hash of the text yakanban wrote,
+so "stale" and "you changed this" are told apart.
+
+Hermes is the exception to "installed means active": it does not load project
+skills until `hermes skills trust` runs, so `install` and `check` say so
+rather than reporting a file nothing will read.
 
 ## Other backends
 

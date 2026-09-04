@@ -51,17 +51,20 @@ func (o Options) Targets() ([]Target, error) {
 	targets := make([]Target, 0, len(agents)*len(names))
 	for _, agent := range agents {
 		dir := agent.ProjectDir(o.Root)
+		note := agent.ProjectNote()
 		if o.Global {
 			if o.Home == "" {
 				return nil, fmt.Errorf("%w: --global needs a home directory", core.ErrInvalidInput)
 			}
 			dir = agent.GlobalDir(o.Home)
+			note = "" // the note is about project-level discovery only
 		}
 		for _, name := range names {
 			targets = append(targets, Target{
 				Skill: name,
 				Agent: agent,
 				Path:  filepath.Join(dir, name, "SKILL.md"),
+				Note:  note,
 			})
 		}
 	}
@@ -90,9 +93,9 @@ func (o Options) resolveAgents() ([]Agent, error) {
 		return o.Agents, nil
 	}
 	var detected []Agent
-	for _, a := range Agents {
-		if Present(a, o.Home, o.LookPath) {
-			detected = append(detected, a)
+	for _, d := range Detect(o.Home, o.LookPath) {
+		if d.Found {
+			detected = append(detected, d.Agent)
 		}
 	}
 	if len(detected) == 0 {

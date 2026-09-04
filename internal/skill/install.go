@@ -18,6 +18,10 @@ type Target struct {
 	Skill string `json:"skill"`
 	Agent Agent  `json:"agent,omitempty"`
 	Path  string `json:"path"`
+	// Note is what still has to happen for the agent to load this file, or ""
+	// when writing it is enough. It rides on the target so that install,
+	// update and check all report it without each working it out again.
+	Note string `json:"note,omitempty"`
 }
 
 // Action records what Write did to one Target.

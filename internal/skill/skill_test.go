@@ -332,3 +332,108 @@ func TestBundledSkillsAreTheOnesInTheRepository(t *testing.T) {
 		}
 	}
 }
+
+func TestDetectReportsEveryAgentAndWhy(t *testing.T) {
+	_, home := newProject(t)
+	if err := os.MkdirAll(filepath.Join(home, ".claude"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	detected := Detect(home, fakeLookPath("pi"))
+
+	if len(detected) != len(Agents) {
+		t.Fatalf("Detect returned %d agents, want every known one: an agent that is\nabsent must still be listed, or it looks unsupported", len(detected))
+	}
+	byAgent := map[Agent]Detection{}
+	for _, d := range detected {
+		byAgent[d.Agent] = d
+	}
+	if d := byAgent[Pi]; !d.Found || d.Reason != "pi on PATH" {
+		t.Fatalf("pi = %+v, want it found via PATH with that said", d)
+	}
+	if d := byAgent[Claude]; !d.Found || d.Reason != "~/.claude" {
+		t.Fatalf("claude = %+v, want it found via its config directory", d)
+	}
+	if d := byAgent[Cursor]; d.Found || d.Reason != "" {
+		t.Fatalf("cursor = %+v, want it listed as absent with no reason", d)
+	}
+}
+
+func TestPiUserPathIsNotTheProjectPathUnderHome(t *testing.T) {
+	root, home := newProject(t)
+
+	project, err := (Options{Root: root, Home: home, Agents: []Agent{Pi}, Skills: []string{"yakanban"}}).Targets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	global, err := (Options{Root: root, Home: home, Global: true, Agents: []Agent{Pi}, Skills: []string{"yakanban"}}).Targets()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantProject := filepath.Join(root, ".pi", "skills", "yakanban", "SKILL.md")
+	wantGlobal := filepath.Join(home, ".pi", "agent", "skills", "yakanban", "SKILL.md")
+	if project[0].Path != wantProject {
+		t.Fatalf("project path = %q, want %q", project[0].Path, wantProject)
+	}
+	if global[0].Path != wantGlobal {
+		t.Fatalf("user path = %q, want %q — pi is the one agent whose user path is not its project path under $HOME",
+			global[0].Path, wantGlobal)
+	}
+}
+
+func TestHermesProjectInstallSaysItMustBeTrusted(t *testing.T) {
+	root, home := newProject(t)
+
+	project, err := (Options{Root: root, Home: home, Agents: []Agent{Hermes}, Skills: []string{"yakanban"}}).Targets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(project[0].Note, "hermes skills trust") {
+		t.Fatalf("note = %q, want it to say the file alone will not load", project[0].Note)
+	}
+	results, err := Install(project, "1.0.0", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if results[0].Note != project[0].Note {
+		t.Fatal("the note must survive into the result, or nothing reports it")
+	}
+
+	global, err := (Options{Root: root, Home: home, Global: true, Agents: []Agent{Hermes}, Skills: []string{"yakanban"}}).Targets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if global[0].Note != "" {
+		t.Fatalf("note = %q, want none: trust is about project discovery", global[0].Note)
+	}
+}
+
+func TestCheckCarriesTheTrustNote(t *testing.T) {
+	root, home := newProject(t)
+	targets, err := (Options{Root: root, Home: home, Agents: []Agent{Hermes}, Skills: []string{"yakanban"}}).Targets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Install(targets, "1.0.0", false); err != nil {
+		t.Fatal(err)
+	}
+	statuses, err := Check(targets, "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if statuses[0].State != StateCurrent {
+		t.Fatalf("state = %q", statuses[0].State)
+	}
+	if !strings.Contains(statuses[0].Note, "trust") {
+		t.Fatal("check must not present an untrusted hermes skill as simply current")
+	}
+}
+
+func TestTheNewAgentsAreSelectable(t *testing.T) {
+	for _, name := range []string{"hermes", "pi", "HERMES"} {
+		if _, err := ParseAgent(name); err != nil {
+			t.Fatalf("ParseAgent(%q): %v", name, err)
+		}
+	}
+}

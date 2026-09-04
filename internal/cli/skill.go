@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -104,8 +105,21 @@ A file you have edited is never overwritten without --force.`,
 			if err != nil {
 				return err
 			}
-			if !f.yes && interactive() && !e.confirmSkillTargets(cmd, targets) {
-				return nil
+			// Detection proposes; the person decides. --agent is the same
+			// answer given up front, so it skips the question entirely.
+			if len(f.agents) == 0 && !f.yes && interactive() {
+				chosen, ok, err := e.chooseAgents(cmd, o)
+				if err != nil {
+					return err
+				}
+				if !ok {
+					cmd.Println("nothing was written")
+					return nil
+				}
+				o.Agents = chosen
+				if targets, err = o.Targets(); err != nil {
+					return err
+				}
 			}
 			results, err := skill.Install(targets, version.String(), f.force)
 			if err != nil {
@@ -185,9 +199,18 @@ otherwise every fresh clone would.`,
 					return err
 				}
 			} else {
+				var notes []string
+				seen := map[string]bool{}
 				for _, s := range statuses {
 					p.Printf("%-9s %s\n", s.State, s.Path)
+					// A skill that is installed but not yet trusted is not
+					// active, whatever its version says.
+					if s.Note != "" && s.State != skill.StateMissing && !seen[s.Note] {
+						seen[s.Note] = true
+						notes = append(notes, s.Note)
+					}
 				}
+				printNotes(p, notes)
 			}
 			if stale > 0 {
 				return fmt.Errorf("%d installed skill(s) out of date; run `yakanban skill update`", stale)
@@ -222,22 +245,70 @@ func newSkillShowCommand(e *env) *cobra.Command {
 	}
 }
 
-// confirmSkillTargets shows what is about to be written and waits for a yes.
-// It is only reached with a human on both ends of the pipe; CI never sees it.
-func (e *env) confirmSkillTargets(cmd *cobra.Command, targets []skill.Target) bool {
-	out := cmd.OutOrStdout()
-	fmt.Fprintln(out, "About to install:")
-	for _, t := range targets {
-		fmt.Fprintf(out, "  %s\n", t.Path)
+// chooseAgents shows every known agent with the detected ones ticked, and
+// lets the selection be edited before anything is written.
+//
+// Every agent is listed, detected or not: an agent yakanban cannot see and an
+// agent that is genuinely absent must not look the same. The reason beside
+// each tick is what tells them apart.
+//
+// It is line-based on purpose. A full-screen selector would mean a TUI
+// dependency in a binary that has two, for one menu.
+func (e *env) chooseAgents(cmd *cobra.Command, o skill.Options) ([]skill.Agent, bool, error) {
+	detected := skill.Detect(o.Home, o.LookPath)
+	selected := make([]bool, len(detected))
+	for i, d := range detected {
+		selected[i] = d.Found
 	}
-	fmt.Fprint(out, "Proceed? [Y/n]: ")
-	line, _ := bufio.NewReader(cmd.InOrStdin()).ReadString('\n')
-	switch strings.ToLower(strings.TrimSpace(line)) {
-	case "", "y", "yes":
-		return true
-	default:
-		fmt.Fprintln(out, "nothing was written")
-		return false
+	out := cmd.OutOrStdout()
+	reader := bufio.NewReader(cmd.InOrStdin())
+
+	for {
+		fmt.Fprintln(out, "\nInstall the yakanban skills for:")
+		for i, d := range detected {
+			box := " "
+			if selected[i] {
+				box = "x"
+			}
+			reason := d.Reason
+			if reason == "" {
+				reason = "not detected"
+			} else {
+				reason = "found: " + reason
+			}
+			fmt.Fprintf(out, "  [%s] %d) %-9s %s\n", box, i+1, d.Agent, reason)
+		}
+		fmt.Fprint(out, "\nToggle with a number, Enter to install, q to cancel: ")
+
+		line, err := reader.ReadString('\n')
+		answer := strings.TrimSpace(line)
+		if err != nil && answer == "" {
+			// The input ended mid-question: treat it as a cancel rather than
+			// installing something nobody confirmed.
+			return nil, false, nil
+		}
+		switch strings.ToLower(answer) {
+		case "":
+			var chosen []skill.Agent
+			for i, ok := range selected {
+				if ok {
+					chosen = append(chosen, detected[i].Agent)
+				}
+			}
+			if len(chosen) == 0 {
+				fmt.Fprintln(out, "nothing selected")
+				continue
+			}
+			return chosen, true, nil
+		case "q", "quit", "n", "no":
+			return nil, false, nil
+		}
+		n, err := strconv.Atoi(answer)
+		if err != nil || n < 1 || n > len(detected) {
+			fmt.Fprintf(out, "%q is not one of 1-%d\n", answer, len(detected))
+			continue
+		}
+		selected[n-1] = !selected[n-1]
 	}
 }
 
@@ -249,5 +320,27 @@ func (e *env) reportSkillResults(results []skill.Result) error {
 	for _, r := range results {
 		p.Printf("%-32s %s\n", r.Action, r.Path)
 	}
+	printNotes(p, notesFor(results))
 	return nil
+}
+
+// notesFor collects what still has to be done, once per agent rather than
+// once per file.
+func notesFor(results []skill.Result) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, r := range results {
+		if r.Note == "" || r.Action == skill.ActionNotInstalled || seen[r.Note] {
+			continue
+		}
+		seen[r.Note] = true
+		out = append(out, r.Note)
+	}
+	return out
+}
+
+func printNotes(p interface{ Printf(string, ...any) }, notes []string) {
+	for _, note := range notes {
+		p.Printf("\nnote: %s\n", note)
+	}
 }
