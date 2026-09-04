@@ -66,6 +66,7 @@ cached locally for a minute, writes always go straight through.
 | Close a task                        | `yakanban delete ID --yes` |
 | See changes made in the web UI      | `yakanban sync` |
 | Inspect the configuration           | `yakanban config` |
+| See a column somebody just added    | `yakanban board --refresh` |
 | Set up a new board                  | `yakanban init` |
 
 ## Agent session

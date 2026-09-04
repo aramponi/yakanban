@@ -266,10 +266,45 @@ providers:
     project_number: 3
 ```
 
-Column names and order come from the backend at runtime — rename a column in
-the GitHub UI and yakanban follows. The descriptor only adds the semantics
-GitHub has nowhere to put: which column is terminal, which requires a claim,
-WIP limits.
+### Changing the columns
+
+Columns belong to the tracker, not to yakanban. Add, rename, reorder or remove
+one in the GitHub project's own UI and yakanban follows on the next command —
+no re-init, no edit required. The ordering the UI shows is the ordering
+`--next` and `--prev` walk.
+
+```bash
+yakanban board --refresh    # see it now rather than after the 1-minute cache
+```
+
+The descriptor only adds what GitHub has nowhere to store: which column is
+terminal (entering it stamps `Completed`), which is the intake column (leaving
+it stamps `Started`), which requires a claim, and WIP limits. A column added in
+the UI starts with none of those — give it some by adding it to `statuses:`:
+
+```yaml
+statuses:
+  - name: Backlog
+    initial: true
+  - name: Todo
+  - name: In Progress
+    require_claim: true
+    wip_limit: 3
+  - name: Review          # added in the web UI, then described here
+    require_claim: true
+  - name: Done
+    terminal: true
+defaults:
+  review: Review          # where `yakanban handoff` parks work
+```
+
+Names are matched case-insensitively and ignoring separators, so a column
+renamed to `in progress` keeps the semantics written for `In Progress`.
+
+**Do not use `yakanban init --force` to pick up a new column.** It rewrites the
+descriptor from the defaults and would discard WIP limits, claim rules and
+anything else you have written there. Editing `statuses:` is the supported
+route; `init --force` is for re-provisioning the backend.
 
 ## How it maps onto GitHub
 
