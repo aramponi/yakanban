@@ -437,3 +437,101 @@ func TestTheNewAgentsAreSelectable(t *testing.T) {
 		}
 	}
 }
+
+func TestCodexAndAntigravityShareAPathAndWriteItOnce(t *testing.T) {
+	root, home := newProject(t)
+	o := Options{Root: root, Home: home, Agents: []Agent{Codex, Antigravity}, Skills: []string{"yakanban"}}
+
+	targets, err := o.Targets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(targets) != 1 {
+		t.Fatalf("got %d targets for one shared file: %+v", len(targets), targets)
+	}
+	want := filepath.Join(root, ".agents", "skills", "yakanban", "SKILL.md")
+	if targets[0].Path != want {
+		t.Fatalf("path = %q, want %q", targets[0].Path, want)
+	}
+
+	results, err := Install(targets, "1.0.0", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 1 || results[0].Action != ActionWrote {
+		t.Fatalf("results = %+v, want one write reported once", results)
+	}
+}
+
+func TestAntigravityAndGeminiAreDetectedApart(t *testing.T) {
+	_, home := newProject(t)
+	byAgent := func(ds []Detection) map[Agent]Detection {
+		m := map[Agent]Detection{}
+		for _, d := range ds {
+			m[d.Agent] = d
+		}
+		return m
+	}
+
+	// Gemini CLI's own directory must not imply Antigravity.
+	if err := os.MkdirAll(filepath.Join(home, ".gemini"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	d := byAgent(Detect(home, fakeLookPath()))
+	if !d[Gemini].Found {
+		t.Fatalf("gemini = %+v, want it found via ~/.gemini", d[Gemini])
+	}
+	if d[Antigravity].Found {
+		t.Fatalf("antigravity = %+v, want ~/.gemini alone not to imply it", d[Antigravity])
+	}
+
+	// Antigravity's own skills directory is what counts as evidence for it.
+	if err := os.MkdirAll(filepath.Join(home, ".gemini", "config", "skills"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	d = byAgent(Detect(home, fakeLookPath()))
+	if !d[Antigravity].Found || d[Antigravity].Reason != "~/.gemini/config/skills" {
+		t.Fatalf("antigravity = %+v, want its own directory as the evidence", d[Antigravity])
+	}
+}
+
+func TestAnAgentWithoutABinaryIsNeverDetectedByPath(t *testing.T) {
+	_, home := newProject(t)
+	// An empty binary name must not make LookPath("") a match.
+	d := Detect(home, func(file string) (string, error) { return "/anything", nil })
+	for _, entry := range d {
+		if entry.Agent == Antigravity && entry.Found {
+			t.Fatal("antigravity has no executable; nothing on PATH should imply it")
+		}
+	}
+}
+
+func TestGeminiUsesItsOwnDirectories(t *testing.T) {
+	root, home := newProject(t)
+	project, err := (Options{Root: root, Home: home, Agents: []Agent{Gemini}, Skills: []string{"yakanban"}}).Targets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	global, err := (Options{Root: root, Home: home, Global: true, Agents: []Agent{Gemini}, Skills: []string{"yakanban"}}).Targets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if project[0].Path != filepath.Join(root, ".gemini", "skills", "yakanban", "SKILL.md") {
+		t.Fatalf("project path = %q", project[0].Path)
+	}
+	if global[0].Path != filepath.Join(home, ".gemini", "skills", "yakanban", "SKILL.md") {
+		t.Fatalf("user path = %q", global[0].Path)
+	}
+}
+
+func TestAntigravityUserPathLivesUnderGeminiConfig(t *testing.T) {
+	root, home := newProject(t)
+	global, err := (Options{Root: root, Home: home, Global: true, Agents: []Agent{Antigravity}, Skills: []string{"yakanban"}}).Targets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(home, ".gemini", "config", "skills", "yakanban", "SKILL.md")
+	if global[0].Path != want {
+		t.Fatalf("user path = %q, want %q", global[0].Path, want)
+	}
+}

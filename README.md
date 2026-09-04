@@ -361,19 +361,21 @@ yakanban skill check              # exits non-zero when an installed skill is st
 yakanban skill update             # refresh what is installed
 ```
 
-Claude Code, Codex, Cursor, Hermes, Pi and OpenClaw are supported. Run
-`skill install` in a terminal and it shows every one of them, with the
-detected ones already ticked and the evidence beside each:
+Claude Code, Codex, Cursor, Gemini CLI, Antigravity, Hermes, Pi and OpenClaw
+are supported. Run `skill install` in a terminal and it shows every one of
+them, with the detected ones already ticked and the evidence beside each:
 
 ```
 Install the yakanban skills for:
 
-  [x] claude    found: ~/.claude
-  [x] codex     found: codex on PATH
-  [ ] cursor    not detected
-  [ ] hermes    not detected
-  [x] pi        found: pi on PATH
-  [ ] openclaw  not detected
+  [x] 1) claude       found: ~/.claude
+  [x] 2) codex        found: codex on PATH
+  [ ] 3) cursor       not detected
+  [x] 4) gemini       found: ~/.gemini
+  [ ] 5) antigravity  not detected
+  [ ] 6) hermes       not detected
+  [x] 7) pi           found: pi on PATH
+  [ ] 8) openclaw     not detected
 
 Toggle with a number, Enter to install, q to cancel:
 ```
@@ -386,9 +388,16 @@ A skill file you have edited is never overwritten without `--force`: each
 installed file carries a version marker and a hash of the text yakanban wrote,
 so "stale" and "you changed this" are told apart.
 
-Hermes is the exception to "installed means active": it does not load project
-skills until `hermes skills trust` runs, so `install` and `check` say so
-rather than reporting a file nothing will read.
+Two agents need a word of explanation:
+
+- **Hermes** is the exception to "installed means active": it does not load
+  project skills until `hermes skills trust` runs, so `install` and `check`
+  say so rather than reporting a file nothing will read.
+- **Antigravity** is an IDE, so there is no executable to detect it by, and it
+  reads the same `.agents/skills` directory as Codex. Selecting both writes
+  that file once, not twice. Its user-level skills live under
+  `~/.gemini/config/skills`, inside Gemini CLI's directory, so each is
+  detected by its own path rather than by the root they share.
 
 ## Other backends
 

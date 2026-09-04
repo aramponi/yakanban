@@ -49,6 +49,10 @@ func (o Options) Targets() ([]Target, error) {
 		return nil, err
 	}
 	targets := make([]Target, 0, len(agents)*len(names))
+	// Two agents can share a discovery directory — Codex and Antigravity both
+	// read .agents/skills — and writing the same file twice would report one
+	// install as two.
+	claimed := make(map[string]bool, len(agents)*len(names))
 	for _, agent := range agents {
 		dir := agent.ProjectDir(o.Root)
 		note := agent.ProjectNote()
@@ -60,10 +64,15 @@ func (o Options) Targets() ([]Target, error) {
 			note = "" // the note is about project-level discovery only
 		}
 		for _, name := range names {
+			path := filepath.Join(dir, name, "SKILL.md")
+			if claimed[path] {
+				continue
+			}
+			claimed[path] = true
 			targets = append(targets, Target{
 				Skill: name,
 				Agent: agent,
-				Path:  filepath.Join(dir, name, "SKILL.md"),
+				Path:  path,
 				Note:  note,
 			})
 		}

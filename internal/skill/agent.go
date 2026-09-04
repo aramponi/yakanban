@@ -20,16 +20,18 @@ type Agent string
 
 // Supported agents.
 const (
-	Claude   Agent = "claude"
-	Codex    Agent = "codex"
-	Cursor   Agent = "cursor"
-	Hermes   Agent = "hermes"
-	Pi       Agent = "pi"
-	OpenClaw Agent = "openclaw"
+	Claude      Agent = "claude"
+	Codex       Agent = "codex"
+	Cursor      Agent = "cursor"
+	Gemini      Agent = "gemini"
+	Antigravity Agent = "antigravity"
+	Hermes      Agent = "hermes"
+	Pi          Agent = "pi"
+	OpenClaw    Agent = "openclaw"
 )
 
 // Agents lists every agent this package understands, in a stable order.
-var Agents = []Agent{Claude, Codex, Cursor, Hermes, Pi, OpenClaw}
+var Agents = []Agent{Claude, Codex, Cursor, Gemini, Antigravity, Hermes, Pi, OpenClaw}
 
 // layout is one agent's skill directory convention, plus the executable used
 // to detect it on the machine. Every path below was read from that agent's
@@ -43,6 +45,13 @@ var Agents = []Agent{Claude, Codex, Cursor, Hermes, Pi, OpenClaw}
 //   - Cursor — .cursor/skills and ~/.cursor/skills. Cursor also reads
 //     .agents/skills, but its own directory is the one it documents first
 //     (cursor.com/docs/skills).
+//   - Gemini CLI — .gemini/skills in the workspace, ~/.gemini/skills for the
+//     user (google-gemini/gemini-cli, docs/cli/skills.md). It also reads the
+//     shared .agents/skills, but its own directory is unambiguous.
+//   - Antigravity — .agents/skills in the workspace, ~/.gemini/config/skills
+//     for the user (antigravity.google/docs/skills). It is an IDE, so there is
+//     no executable to look for, and its user directory sits inside Gemini
+//     CLI's — hence the explicit detect path below.
 //   - Hermes — .hermes/skills in a git repository, ~/.hermes/skills for the
 //     user (NousResearch/hermes-agent, docs/user-guide/features/skills.md).
 //     Project skills stay inert until `hermes skills trust` runs, which is why
@@ -63,12 +72,23 @@ type layout struct {
 	// projectNote is printed after writing a project-level skill, when the
 	// file alone is not enough for the agent to load it.
 	projectNote string
+	// detect is the directory under $HOME whose existence is evidence the
+	// agent is in use. It defaults to the first segment of global, which is
+	// wrong when two agents share a root: ~/.gemini belongs to Gemini CLI,
+	// while Antigravity lives under ~/.gemini/config.
+	detect string
 }
 
 var layouts = map[Agent]layout{
 	Claude: {binary: "claude", project: ".claude/skills", global: ".claude/skills"},
 	Codex:  {binary: "codex", project: ".agents/skills", global: ".agents/skills"},
 	Cursor: {binary: "cursor", project: ".cursor/skills", global: ".cursor/skills"},
+	Gemini: {binary: "gemini", project: ".gemini/skills", global: ".gemini/skills", detect: ".gemini"},
+	Antigravity: {
+		// An IDE, so no binary: only its own skills directory is evidence,
+		// and ~/.gemini alone would be Gemini CLI's, not Antigravity's.
+		project: ".agents/skills", global: ".gemini/config/skills", detect: ".gemini/config/skills",
+	},
 	Hermes: {
 		binary: "hermes", project: ".hermes/skills", global: ".hermes/skills",
 		projectNote: "hermes does not load project skills until they are trusted: run `hermes skills trust`",
@@ -104,6 +124,15 @@ func (a Agent) GlobalDir(home string) string {
 // real PATH.
 type LookPathFunc func(file string) (string, error)
 
+// detectDir returns the directory whose existence is evidence of the agent.
+func (l layout) detectDir() string {
+	if l.detect != "" {
+		return l.detect
+	}
+	root, _, _ := strings.Cut(l.global, "/")
+	return root
+}
+
 // ProjectNote returns what still has to happen after a project-level install
 // for the agent to actually load the skill, or "" when writing the file is
 // enough. Reporting "wrote" and stopping would be telling somebody a thing
@@ -132,13 +161,16 @@ func Detect(home string, lookPath LookPathFunc) []Detection {
 	}
 	out := make([]Detection, 0, len(Agents))
 	for _, a := range Agents {
+		l := layouts[a]
 		d := Detection{Agent: a}
-		if _, err := lookPath(layouts[a].binary); err == nil {
-			d.Found, d.Reason = true, layouts[a].binary+" on PATH"
-		} else if home != "" {
-			root, _, _ := strings.Cut(layouts[a].global, "/")
-			if st, err := os.Stat(filepath.Join(home, root)); err == nil && st.IsDir() {
-				d.Found, d.Reason = true, "~/"+root
+		if l.binary != "" {
+			if _, err := lookPath(l.binary); err == nil {
+				d.Found, d.Reason = true, l.binary+" on PATH"
+			}
+		}
+		if !d.Found && home != "" {
+			if st, err := os.Stat(filepath.Join(home, filepath.FromSlash(l.detectDir()))); err == nil && st.IsDir() {
+				d.Found, d.Reason = true, "~/"+l.detectDir()
 			}
 		}
 		out = append(out, d)
