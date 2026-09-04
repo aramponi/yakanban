@@ -111,13 +111,19 @@ func (e *env) open(ctx context.Context) (*session, error) {
 		return nil, err
 	}
 	board := mergeBoard(cfg, live)
+	policy, err := cfg.Branching.Policy()
+	if err != nil {
+		return nil, err
+	}
+	templates := cfg.Branching.EffectiveTemplates()
 	service := app.New(provider, board, app.Options{
 		DefaultStatus:    cfg.Defaults.Status,
 		DefaultPriority:  cfg.Defaults.Priority,
 		DefaultClass:     cfg.Defaults.Class,
 		ClaimTimeout:     cfg.ClaimTimeout.Duration(),
-		BranchTemplate:   cfg.Branching.Templates.Branch,
-		WorktreeTemplate: cfg.Branching.Templates.Worktree,
+		BranchTemplate:   templates.Branch,
+		WorktreeTemplate: templates.Worktree,
+		Branching:        policy,
 	})
 	return &session{cfg: cfg, provider: provider, service: service, store: store}, nil
 }

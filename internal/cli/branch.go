@@ -67,7 +67,13 @@ you can create your local branch from it straight away.
 			if dryRun {
 				return e.printBranch(core.Branch{Name: name}, worktree, "")
 			}
-			oid, base, err := repo.ResolveBase(from)
+			// An explicit --from wins; otherwise the model decides, and a rule
+			// can send a hotfix somewhere other than the usual base.
+			wanted := from
+			if wanted == "" {
+				wanted = s.service.BaseFor(*task)
+			}
+			oid, base, err := repo.ResolveBase(wanted)
 			if err != nil {
 				return err
 			}
@@ -76,6 +82,9 @@ you can create your local branch from it straight away.
 			branch, err := s.service.CreateBranch(cmd.Context(), id, o)
 			if err != nil {
 				return err
+			}
+			if note := s.service.BackMergeNote(*task); note != "" {
+				e.Printer().Warnf("%s", note)
 			}
 			return e.printBranch(*branch, worktree, base)
 		},

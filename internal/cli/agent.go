@@ -130,7 +130,11 @@ func (e *env) attachBranch(ctx context.Context, s *session, id, agent, from stri
 	if err != nil {
 		return nil, "", err
 	}
-	oid, _, err := repo.ResolveBase(from)
+	wanted := from
+	if wanted == "" {
+		wanted = s.service.BaseFor(*task)
+	}
+	oid, _, err := repo.ResolveBase(wanted)
 	if err != nil {
 		return nil, "", err
 	}

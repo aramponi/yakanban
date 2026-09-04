@@ -172,16 +172,49 @@ The name is decided locally, from a template, and handed to the backend — neve
 read back from it. That is what lets an agent create its local branch straight
 away, from a commit it already has, with no fetch in between.
 
+### Branching models
+
+`yakanban init` asks which model the repository follows, and writes the answer
+to the descriptor. `--branching <model>` skips the question; a piped or CI run
+never prompts.
+
+| Model | base → integration | branch |
+|---|---|---|
+| `trunk-based` | `main` → `main` | `{{.ID}}-{{.Slug}}` |
+| `github-flow` | `main` → `main` | `{{.ID}}-{{.Slug}}` |
+| `git-flow` | `develop` → `develop` | `{{.Type}}/{{.ID}}-{{.Slug}}` |
+| `gitlab-flow` | `main` → `main` | `{{.ID}}-{{.Slug}}` |
+| `oneflow` | `main` → `main` | `{{.Type}}/{{.ID}}-{{.Slug}}` |
+
+`model` picks a preset and every key beside it is an override, so `custom`
+is simply "no preset":
+
 ```yaml
 branching:
+  model: git-flow
+  base: develop           # where work starts
+  integration: develop    # where it merges back
   templates:
-    branch: "{{.ID}}-{{.Slug}}"          # matches what GitHub generates itself
+    branch: "{{.Type}}/{{.ID}}-{{.Slug}}"
     worktree: "../{{.Repo}}-task-{{.ID}}"
+  types:
+    default: feature
+    match:                # first match wins
+      - priority: critical
+        type: hotfix
+        base: main        # a hotfix branches off production
+      - tag: bug
+        type: fix
 ```
 
-Templates can use `.ID`, `.Slug`, `.Title`, `.Priority`, `.Class`, `.Agent`,
-`.Board` and `.Repo`. `--dry-run --json` prints the names that would be used
-without creating anything.
+Templates can use `.ID`, `.Slug`, `.Title`, `.Priority`, `.Class`, `.Type`,
+`.Agent`, `.Board` and `.Repo`. `yakanban config` prints the resolved model and
+its rules; `yakanban branch ID --dry-run --json` prints the names a given task
+would get without creating anything.
+
+Release branches and git flow's hotfix back-merge are deliberately **not**
+automated: that is release engineering, and a silently skipped back-merge
+loses a fix. yakanban says the back-merge is yours to do and stops there.
 
 The base commit defaults to the upstream of the current branch and is always
 resolved through the **remote**: a commit you have not pushed does not exist

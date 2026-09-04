@@ -28,6 +28,13 @@ defaults:
     priority: medium
     class: standard
 claim_timeout: 1h0m0s
+branching:
+    model: trunk-based
+    base: main
+    integration: main
+    templates:
+        branch: '{{.ID}}-{{.Slug}}'
+        worktree: ../{{.Repo}}-task-{{.ID}}
 cache:
     enabled: true
     ttl: 1m0s

@@ -26,6 +26,10 @@ type Options struct {
 	// a default should be invented behind the user's back.
 	BranchTemplate   string
 	WorktreeTemplate string
+
+	// Branching is the board's branching model: where work starts, where it
+	// merges back, and what a branch is called.
+	Branching core.BranchPolicy
 }
 
 // Service is the application-side facade used by the CLI.
@@ -45,6 +49,9 @@ func New(p core.Provider, board core.BoardInfo, opts Options) *Service {
 	}
 	return &Service{provider: p, board: board, opts: opts}
 }
+
+// Branching returns the board's branching model.
+func (s *Service) Branching() core.BranchPolicy { return s.opts.Branching }
 
 // Board returns the board description the service was built with.
 func (s *Service) Board() core.BoardInfo { return s.board }

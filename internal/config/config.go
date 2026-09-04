@@ -66,8 +66,22 @@ type Defaults struct {
 }
 
 // Branching says how a task becomes a branch and a working directory.
+//
+// `model` selects a preset; every other key is an override, so `custom` is
+// simply "no preset".
 type Branching struct {
-	Templates Templates `yaml:"templates,omitempty"`
+	Model            string    `yaml:"model,omitempty"`
+	Base             string    `yaml:"base,omitempty"`
+	Integration      string    `yaml:"integration,omitempty"`
+	DeleteAfterMerge *bool     `yaml:"delete_after_merge,omitempty"`
+	Templates        Templates `yaml:"templates,omitempty"`
+	Types            Types     `yaml:"types,omitempty"`
+}
+
+// Types decides the branch type of a task.
+type Types struct {
+	Default string            `yaml:"default,omitempty"`
+	Match   []core.BranchRule `yaml:"match,omitempty"`
 }
 
 // Templates name the branch and the worktree of a task. They are Go text
@@ -134,14 +148,21 @@ func Default(name, provider string) *Config {
 		Defaults:     Defaults{Status: "Backlog", Priority: "medium", Class: "standard", Review: "Review"},
 		ClaimTimeout: Duration(time.Hour),
 		Cache:        Cache{Enabled: true, TTL: Duration(60 * time.Second)},
-		// The default branch name matches what GitHub itself generates from an
-		// issue, so the Development section looks native.
-		Branching: Branching{Templates: Templates{
-			Branch:   "{{.ID}}-{{.Slug}}",
-			Worktree: "../{{.Repo}}-task-{{.ID}}",
-		}},
+		// Trunk-based by default: its branch names are the ones GitHub itself
+		// generates from an issue, so the Development section looks native.
+		Branching: defaultBranching(),
 		Providers: map[string]map[string]any{},
 	}
+}
+
+// defaultBranching returns the trunk-based model, fully written out so the
+// generated descriptor shows what it is doing rather than hiding behind a name.
+func defaultBranching() Branching {
+	b := Branching{}
+	if preset, ok := FindPreset(ModelTrunkBased); ok {
+		preset.Apply(&b)
+	}
+	return b
 }
 
 // BoardInfo projects the descriptor onto the domain board description.

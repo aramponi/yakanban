@@ -17,6 +17,7 @@ type BranchData struct {
 	Title    string
 	Priority string
 	Class    string
+	Type     string
 	Agent    string
 	Board    string
 	Repo     string
@@ -66,12 +67,14 @@ func (s *Service) render(what, text string, task core.Task, o BranchOptions) (st
 	if err != nil {
 		return "", fmt.Errorf("%w: the %s template does not parse: %v", core.ErrInvalidInput, what, err)
 	}
+	typ, _ := s.opts.Branching.TypeFor(task)
 	data := BranchData{
 		ID:       task.ID,
 		Slug:     Slugify(task.Title, slugLimit),
 		Title:    task.Title,
 		Priority: task.Priority,
 		Class:    task.Class,
+		Type:     typ,
 		Agent:    o.Agent,
 		Board:    s.board.Name,
 		Repo:     o.Repo,
@@ -113,6 +116,15 @@ func (s *Service) CreateBranch(ctx context.Context, id string, o BranchOptions) 
 	}
 	return brancher.CreateBranch(ctx, id, core.BranchRequest{Name: name, BaseOID: o.BaseOID})
 }
+
+// BaseFor returns the branch a task should start from under the board's model,
+// which a hotfix rule can override.
+func (s *Service) BaseFor(task core.Task) string { return s.opts.Branching.BaseFor(task) }
+
+// BackMergeNote returns the warning a model attaches to this task's branch
+// type, if any. It is surfaced rather than acted on: skipping a git flow
+// back-merge silently would lose a fix.
+func (s *Service) BackMergeNote(task core.Task) string { return s.opts.Branching.BackMergeNote(task) }
 
 // Branches lists the branches attached to a task.
 func (s *Service) Branches(ctx context.Context, id string) ([]core.Branch, error) {

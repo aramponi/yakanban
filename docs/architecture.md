@@ -70,6 +70,18 @@ Anything a backend knows and the domain does not goes into
 `Task.Metadata map[string]any` (the GitHub adapter puts the project item ID and
 the issue open/closed state there).
 
+## Branching models
+
+`core.BranchPolicy` is board policy, like the column list: which branch work
+starts from, which it merges back into, and how a task becomes a branch type.
+`internal/config` resolves it from a preset name plus overrides; the domain
+only ever sees the resolved policy, so adding a model is a table entry rather
+than a code path.
+
+The models stop at naming and routing. Release branches, and the second merge
+a git flow hotfix needs, are release engineering: half-automating them would
+silently lose a fix, so the policy carries a warning to print instead.
+
 ## Caching
 
 The choice is deliberate and narrow:

@@ -1,8 +1,14 @@
 package cli
 
 import (
+	"errors"
+	"io"
+	"strings"
 	"testing"
 
+	"github.com/spf13/cobra"
+
+	"github.com/aramponi/yakanban/internal/config"
 	"github.com/aramponi/yakanban/internal/core"
 )
 
@@ -73,5 +79,35 @@ func TestAdoptReviewDropsAMissingColumn(t *testing.T) {
 	}
 	if got := adoptReview("review", append(statuses, core.Status{Name: "Review"})); got != "Review" {
 		t.Fatalf("adoptReview = %q, want the board's spelling", got)
+	}
+}
+
+func TestBranchingModelFromTheFlag(t *testing.T) {
+	cmd := &cobra.Command{}
+	got, err := resolveBranchingModel(cmd, "git-flow")
+	if err != nil || got != "git-flow" {
+		t.Fatalf("resolveBranchingModel = %q, %v", got, err)
+	}
+}
+
+func TestBranchingModelRejectsAnUnknownName(t *testing.T) {
+	_, err := resolveBranchingModel(&cobra.Command{}, "gitflow-ish")
+	var invalid *core.InvalidValueError
+	if !errors.As(err, &invalid) {
+		t.Fatalf("err = %v, want the list of models", err)
+	}
+}
+
+// A piped or CI run must pick the default rather than block on a prompt.
+func TestBranchingModelDefaultsWhenNobodyCanAnswer(t *testing.T) {
+	cmd := &cobra.Command{}
+	cmd.SetIn(strings.NewReader(""))
+	cmd.SetOut(io.Discard)
+	got, err := resolveBranchingModel(cmd, "")
+	if err != nil {
+		t.Fatalf("resolveBranchingModel: %v", err)
+	}
+	if got != config.ModelTrunkBased {
+		t.Fatalf("model = %q, want the trunk-based default", got)
 	}
 }

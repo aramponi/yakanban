@@ -173,14 +173,21 @@ note. **Never use `--body` for a note** — it replaces everything.
 
 ### 4) Merge to main
 
+The branch to merge back into comes from the board's branching model — it is
+`main` under trunk-based, `develop` under git flow. Read it, never assume it:
+
 ```bash
+INTEGRATION=$(yakanban config --json | jq -r .branching.integration)
 cd <main checkout>
-git switch main
+git switch "$INTEGRATION"
 git status
-git merge task/<ID>-<kebab-description>
+git merge "$BRANCH"
 go test ./...
 golangci-lint run ./...
 ```
+
+If `yakanban branch` warned about a back-merge (a git flow hotfix), do it
+yourself and say so in the handoff — yakanban will not.
 
 If `git status` shows unexpected changes or an operation in progress, do not
 force it. Park the task and move on:

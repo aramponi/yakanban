@@ -1,11 +1,13 @@
 package cli
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -27,6 +29,7 @@ func newInitCommand(e *env) *cobra.Command {
 		statuses  []string
 		force     bool
 		wipLimits []string
+		branching string
 	)
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -65,6 +68,16 @@ Run it again with --force after changing the descriptor to re-apply it.`,
 			}
 
 			cfg := config.Default(name, provider)
+			model, err := resolveBranchingModel(cmd, branching)
+			if err != nil {
+				return err
+			}
+			cfg.Branching = config.Branching{}
+			if preset, ok := config.FindPreset(model); ok {
+				preset.Apply(&cfg.Branching)
+			} else {
+				cfg.Branching.Model = model
+			}
 			if len(statuses) > 0 {
 				cfg.Statuses = statusesFromNames(statuses)
 				cfg.Defaults.Status = cfg.Statuses[0].Name
@@ -127,6 +140,8 @@ Run it again with --force after changing the descriptor to re-apply it.`,
 				p.Printf("%s %s\n", p.Dim("project"), board.URL)
 			}
 			p.Printf("%s %s\n", p.Dim("columns"), strings.Join(board.StatusNames(), " → "))
+			p.Printf("%s %s (%s → %s)\n", p.Dim("branching"), cfg.Branching.Model,
+				cfg.Branching.Base, cfg.Branching.Integration)
 			p.Printf("%s %s\n", p.Dim("config "), target)
 			p.Printf("\nNext: %s\n", p.Bold("yakanban create \"My first task\""))
 			return nil
@@ -140,6 +155,7 @@ Run it again with --force after changing the descriptor to re-apply it.`,
 	fl.StringVar(&name, "name", "", "board name (default: the repository name)")
 	fl.StringSliceVar(&statuses, "statuses", nil, "comma-separated column names (only applied to a new project)")
 	fl.StringArrayVar(&wipLimits, "wip-limit", nil, "WIP limit per column, as status:N (repeatable)")
+	fl.StringVar(&branching, "branching", "", "branching model ("+strings.Join(config.ModelNames(), ", ")+"); asked interactively when omitted")
 	fl.BoolVar(&force, "force", false, "overwrite an existing .yakanban.yml")
 	return cmd
 }
@@ -240,6 +256,63 @@ func applyWIPLimits(cfg *config.Config, specs []string) error {
 		}
 	}
 	return nil
+}
+
+// resolveBranchingModel takes the model from the flag, asks for it when there
+// is somebody to ask, and otherwise picks the default. A piped or CI run must
+// never block on a prompt.
+func resolveBranchingModel(cmd *cobra.Command, flag string) (string, error) {
+	if flag != "" {
+		if _, ok := config.FindPreset(flag); !ok && !strings.EqualFold(flag, config.ModelCustom) {
+			return "", &core.InvalidValueError{Field: "branching model", Value: flag, Allowed: config.ModelNames()}
+		}
+		return flag, nil
+	}
+	if !interactive() {
+		return config.ModelTrunkBased, nil
+	}
+	out := cmd.OutOrStdout()
+	fmt.Fprintln(out, "\nHow does this repository branch?")
+	presets := config.Presets()
+	for i, preset := range presets {
+		marker := " "
+		if preset.Name == config.ModelTrunkBased {
+			marker = "*"
+		}
+		fmt.Fprintf(out, "  %s %d) %-12s %s\n", marker, i+1, preset.Name, preset.Description)
+	}
+	fmt.Fprintf(out, "\nChoice [1]: ")
+
+	reader := bufio.NewReader(cmd.InOrStdin())
+	line, err := reader.ReadString('\n')
+	if err != nil && strings.TrimSpace(line) == "" {
+		return config.ModelTrunkBased, nil
+	}
+	answer := strings.TrimSpace(line)
+	if answer == "" {
+		return config.ModelTrunkBased, nil
+	}
+	if n, err := strconv.Atoi(answer); err == nil {
+		if n < 1 || n > len(presets) {
+			return "", fmt.Errorf("%w: %d is not one of the %d models offered", core.ErrInvalidInput, n, len(presets))
+		}
+		return presets[n-1].Name, nil
+	}
+	if _, ok := config.FindPreset(answer); !ok && !strings.EqualFold(answer, config.ModelCustom) {
+		return "", &core.InvalidValueError{Field: "branching model", Value: answer, Allowed: config.ModelNames()}
+	}
+	return answer, nil
+}
+
+// interactive reports whether there is a human on both ends of the pipe.
+func interactive() bool {
+	for _, f := range []*os.File{os.Stdin, os.Stdout} {
+		st, err := f.Stat()
+		if err != nil || st.Mode()&os.ModeCharDevice == 0 {
+			return false
+		}
+	}
+	return true
 }
 
 type repoRef struct{ owner, repo string }

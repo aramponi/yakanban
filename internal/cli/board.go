@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -77,11 +78,17 @@ func newConfigCommand(e *env) *cobra.Command {
 				Priorities   []string       `json:"priorities"`
 				Classes      []string       `json:"classes"`
 				ClaimTimeout string         `json:"claim_timeout"`
+				Branching    any            `json:"branching"`
 				CacheTTL     string         `json:"cache_ttl"`
 				CacheDir     string         `json:"cache_dir"`
 				Settings     map[string]any `json:"settings"`
 				Version      string         `json:"yakanban_version"`
 			}
+			policy, err := cfg.Branching.Policy()
+			if err != nil {
+				return err
+			}
+			templates := cfg.Branching.EffectiveTemplates()
 			board := cfg.BoardInfo()
 			v := view{
 				Path:         cfg.Path(),
@@ -91,6 +98,7 @@ func newConfigCommand(e *env) *cobra.Command {
 				Priorities:   cfg.Priorities,
 				Classes:      board.ClassNames(),
 				ClaimTimeout: cfg.ClaimTimeout.Duration().String(),
+				Branching:    policy,
 				CacheTTL:     cfg.Cache.TTL.Duration().String(),
 				CacheDir:     cfg.CacheDir(),
 				Settings:     cfg.Settings(cfg.Provider),
@@ -106,6 +114,12 @@ func newConfigCommand(e *env) *cobra.Command {
 			p.Printf("%s %s\n", p.Dim("classes   "), strings.Join(v.Classes, ", "))
 			p.Printf("%s %s\n", p.Dim("claims    "), "timeout "+v.ClaimTimeout)
 			p.Printf("%s %s\n", p.Dim("cache     "), v.CacheTTL+" in "+v.CacheDir)
+			p.Printf("%s %s (%s → %s)\n", p.Dim("branching "), orNone(policy.Model), orNone(policy.Base), orNone(policy.Integration))
+			p.Printf("%s %s\n", p.Dim("branch    "), orNone(templates.Branch))
+			p.Printf("%s %s\n", p.Dim("worktree  "), orNone(templates.Worktree))
+			for _, rule := range policy.Rules {
+				p.Printf("%s %s\n", p.Dim("rule      "), describeRule(rule))
+			}
 			for k, val := range v.Settings {
 				p.Printf("%s %s=%v\n", p.Dim("provider  "), k, val)
 			}
@@ -114,6 +128,33 @@ func newConfigCommand(e *env) *cobra.Command {
 		},
 	}
 	return cmd
+}
+
+// describeRule renders a branch-type rule the way it reads in the descriptor.
+func describeRule(r core.BranchRule) string {
+	var conditions []string
+	for label, value := range map[string]string{"tag": r.Tag, "priority": r.Priority, "class": r.Class} {
+		if value != "" {
+			conditions = append(conditions, label+"="+value)
+		}
+	}
+	sort.Strings(conditions)
+	when := "anything"
+	if len(conditions) > 0 {
+		when = strings.Join(conditions, " ")
+	}
+	out := when + " → " + r.Type
+	if r.Base != "" {
+		out += " (from " + r.Base + ")"
+	}
+	return out
+}
+
+func orNone(v string) string {
+	if strings.TrimSpace(v) == "" {
+		return "—"
+	}
+	return v
 }
 
 // agentAdjectives and agentNouns generate short, memorable claim names in the
