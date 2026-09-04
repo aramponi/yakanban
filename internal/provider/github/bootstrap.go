@@ -59,6 +59,13 @@ func (p *Provider) Bootstrap(ctx context.Context, opts core.BootstrapOptions) (*
 	p.schema = nil
 	s, err := p.fetchSchema(ctx)
 	if err != nil {
+		if freshProject {
+			// The project exists now; saying only "not found" would leave an
+			// orphan behind with nothing pointing at it.
+			return nil, fmt.Errorf("project #%d was created but could not be read back: %w (re-run with --project %d once this is fixed, or delete it at %s)",
+				p.settings.ProjectNumber, err, p.settings.ProjectNumber,
+				fmt.Sprintf("https://github.com/users/%s/projects/%d", p.settings.Owner, p.settings.ProjectNumber))
+		}
 		return nil, err
 	}
 

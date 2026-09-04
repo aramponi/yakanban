@@ -92,6 +92,15 @@ func (c *client) graphql(ctx context.Context, query string, vars map[string]any,
 	if err := json.Unmarshal(body, &gr); err != nil {
 		return fmt.Errorf("github graphql: cannot decode response: %w", err)
 	}
+	// GraphQL answers partially: a query that asks for a project under both an
+	// organization and a user gets data for the one that exists and a
+	// NOT_FOUND error for the other. Decoding before reporting the error is
+	// what lets a caller keep the half that worked.
+	if out != nil && len(gr.Data) > 0 && string(gr.Data) != "null" {
+		if err := json.Unmarshal(gr.Data, out); err != nil {
+			return fmt.Errorf("github graphql: cannot decode data: %w", err)
+		}
+	}
 	if len(gr.Errors) > 0 {
 		msgs := make([]string, 0, len(gr.Errors))
 		notFound := true
@@ -110,10 +119,7 @@ func (c *client) graphql(ctx context.Context, query string, vars map[string]any,
 		}
 		return fmt.Errorf("github graphql: %s", joined)
 	}
-	if out == nil {
-		return nil
-	}
-	return json.Unmarshal(gr.Data, out)
+	return nil
 }
 
 // rest runs a REST call. body may be nil; out may be nil.

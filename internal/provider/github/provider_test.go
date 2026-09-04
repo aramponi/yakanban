@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -94,7 +95,11 @@ func (f *fakeGitHub) handleREST(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, `{"number":42,"node_id":"I_issue42","html_url":"https://github.com/acme/app/issues/42"}`)
 }
 
-const projectFixture = `{"data":{"organization":null,"user":{"projectV2":{
+// Captured from the real API: a user-owned project comes back as data *and* a
+// NOT_FOUND error for the organization branch of the same query.
+const projectFixture = `{"errors":[{"type":"NOT_FOUND","path":["organization"],
+  "message":"Could not resolve to an Organization with the login of 'acme'."}],
+  "data":{"organization":null,"user":{"projectV2":{
   "id":"PVT_project","number":3,"title":"App board","url":"https://github.com/users/acme/projects/3",
   "fields":{"nodes":[
     {"__typename":"ProjectV2SingleSelectField","id":"F_status","name":"Status","dataType":"SINGLE_SELECT",
@@ -304,4 +309,42 @@ func asInvalid(err error, target **core.InvalidValueError) bool {
 		err = u.Unwrap()
 	}
 	return false
+}
+
+// A user-owned project makes GitHub answer with data *and* a NOT_FOUND error
+// for the organization branch of the same query. Returning early on the error
+// array left the data undecoded, so the adapter reported "project not found"
+// for every project owned by a person rather than an organization.
+func TestPartialGraphQLDataIsKept(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		io.WriteString(w, `{"errors":[{"type":"NOT_FOUND","path":["organization"],
+		  "message":"Could not resolve to an Organization with the login of 'acme'."}],
+		  "data":{"organization":null,"user":{"login":"acme"}}}`)
+	}))
+	defer srv.Close()
+	c := &client{http: srv.Client(), token: "t", graphURL: srv.URL, restBase: srv.URL}
+
+	var out struct {
+		User *struct {
+			Login string `json:"login"`
+		} `json:"user"`
+	}
+	err := c.graphql(context.Background(), "query{}", nil, &out)
+	if !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("err = %v, want the NOT_FOUND to still be reported", err)
+	}
+	if out.User == nil || out.User.Login != "acme" {
+		t.Fatalf("data = %+v, want the half that resolved to be decoded", out.User)
+	}
+}
+
+func TestBoardWorksForAUserOwnedProject(t *testing.T) {
+	f := newFakeGitHub(t)
+	board, err := f.provider().Board(context.Background())
+	if err != nil {
+		t.Fatalf("a project owned by a user must resolve, got %v", err)
+	}
+	if len(board.StatusNames()) == 0 {
+		t.Fatal("the board came back empty")
+	}
 }
