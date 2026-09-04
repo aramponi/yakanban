@@ -16,7 +16,9 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: stable
+          # Same toolchain as CI and as go.mod, so a release is built by the
+          # compiler the tests ran on.
+          go-version-file: go.mod
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: latest

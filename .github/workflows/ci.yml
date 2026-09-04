@@ -12,6 +12,10 @@ concurrency:
 permissions:
   contents: read
 
+# The toolchain comes from go.mod rather than `stable`: a runner silently
+# moving to a newer Go is how golangci-lint ended up unable to parse the
+# standard library it was asked to analyse, and it makes CI and a developer's
+# machine disagree for reasons nobody chose.
 jobs:
   test:
     strategy:
@@ -23,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version-file: go.mod
           cache: true
       - name: Check formatting
         if: matrix.os == 'ubuntu-latest'
@@ -40,7 +44,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version-file: go.mod
           cache: true
       - uses: golangci/golangci-lint-action@v9
         with:
@@ -54,7 +58,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: stable
+          go-version-file: go.mod
           cache: true
       - name: Check GoReleaser configuration
         uses: goreleaser/goreleaser-action@v6
