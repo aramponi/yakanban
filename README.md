@@ -107,6 +107,7 @@ yakanban move 42 done
 | `sync` | Drop the read cache and refetch |
 | `config` | Show the resolved configuration |
 | `agent-name` | Generate a claim identifier |
+| `skill install` | Install the bundled agent skills |
 
 Every command accepts `--json`, `--compact` (one line per record, cheap for
 agents), `--table`, `--no-color`, `--refresh` and `--no-cache`.
@@ -287,14 +288,27 @@ Issues carry the content, the project carries the workflow. See
 
 ## Claude Code / agent skill
 
-Two ready-made skills live in `skills/`; copy either to `~/.claude/skills/`
-(or your team's skills directory):
+Two skills ship inside the binary, so a downloaded release installs them with
+no checkout:
 
 - **`yakanban`** — the decision tree, the claim protocol and the exit codes,
   for any task or board work.
 - **`yakanban-based-development`** — the autonomous, parallel-safe development
-  loop: pick → worktree → implement → merge → done, with an explicit handoff
+  loop: pick → branch → implement → merge → done, with an explicit handoff
   protocol for anything needing a human.
+
+```bash
+yakanban skill install            # into this project, versioned with the code
+yakanban skill install --global   # once, for every project on the machine
+yakanban skill check              # exits non-zero when an installed skill is stale
+yakanban skill update             # refresh what is installed
+```
+
+Claude Code, Codex, Cursor and OpenClaw are detected automatically; `--agent`
+names them explicitly and `--path` writes anywhere. A skill file you have
+edited is never overwritten without `--force`: each installed file carries a
+version marker and a hash of the text yakanban wrote, so "stale" and "you
+changed this" are told apart.
 
 ## Other backends
 

@@ -245,6 +245,7 @@ only caches reads locally and always writes straight through.`,
 		newSyncCommand(e),
 		newConfigCommand(e),
 		newAgentNameCommand(e),
+		newSkillCommand(e),
 	)
 	return root
 }
