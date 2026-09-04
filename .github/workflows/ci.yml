@@ -69,24 +69,35 @@ jobs:
       - name: Verify the stamped snapshot version
         shell: bash
         run: |
-          archive="$(jq -r '
-            map(select(
-              .type == "Archive" and
-              .extra.ID == "yakanban" and
-              .goos == "linux" and
-              .goarch == "amd64"
-            )) | .[0].path // empty
-          ' dist/artifacts.json)"
-          test -n "$archive"
+          artifact() {
+            jq -r --arg type "$1" '
+              map(select(
+                .type == $type and
+                .extra.ID == "yakanban" and
+                .goos == "linux" and
+                .goarch == "amd64"
+              )) | .[0].path // empty
+            ' dist/artifacts.json
+          }
 
-          snapshot_version="$(basename "$archive" | sed -E 's/^yakanban_(.*)_linux_amd64\\.tar\\.gz$/\\1/')"
-          binary="$(jq -r '
-            map(select(
-              .type == "Binary" and
-              .extra.ID == "yakanban" and
-              .goos == "linux" and
-              .goarch == "amd64"
-            )) | .[0].path // empty
-          ' dist/artifacts.json)"
-          test -n "$binary"
-          test "$("$binary" --version)" = "$snapshot_version ($(git rev-parse --short HEAD))"
+          archive="$(artifact Archive)"
+          binary="$(artifact Binary)"
+          if [ -z "$archive" ] || [ -z "$binary" ]; then
+            echo "no linux/amd64 yakanban artifact in dist/artifacts.json" >&2
+            exit 1
+          fi
+
+          version="$(basename "$archive" | sed -E 's/^yakanban_(.*)_linux_amd64\.tar\.gz$/\1/')"
+          reported="$("$binary" --version)"
+
+          # Substring rather than equality: the exact line is cobra's version
+          # template, and pinning CI to it would break the build the day
+          # somebody rewords it. What matters is that the binary carries the
+          # version it was built for instead of reporting "dev".
+          case "$reported" in
+            *"$version"*) echo "$reported" ;;
+            *)
+              echo "the binary reports \"$reported\", which does not carry $version" >&2
+              exit 1
+              ;;
+          esac

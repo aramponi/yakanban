@@ -4,6 +4,8 @@ VERSION     ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo 
 COMMIT      ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 LDFLAGS     := -s -w -X $(MODULE)/internal/version.Version=$(VERSION) -X $(MODULE)/internal/version.Commit=$(COMMIT)
 GH_EXT_DIR  := $(HOME)/.local/share/gh/extensions/gh-$(BINARY)
+# Keep in step with the version pinned in .github/workflows/ci.yml.
+GOLANGCI_VERSION := v2.12.0
 
 .PHONY: all build test check fmt vet lint install gh-extension clean cross
 
@@ -26,7 +28,12 @@ fmt:
 vet:
 	go vet ./...
 
+## lint: golangci-lint, pinned to the version CI uses
 lint:
+	@command -v golangci-lint >/dev/null 2>&1 || { \
+		echo "golangci-lint is not installed. Install it with:"; \
+		echo "  go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)"; \
+		exit 1; }
 	golangci-lint run ./...
 
 ## install: put the binary in GOBIN

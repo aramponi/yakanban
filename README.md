@@ -416,7 +416,13 @@ The board runs on yakanban itself:
 ```bash
 make test      # go test ./...
 make build     # ./bin/yakanban
-make check     # fmt, vet, test
+make check     # fmt, vet, lint, test
+```
+
+`make check` runs golangci-lint, pinned to the same version as CI:
+
+```bash
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0
 ```
 
 ## License
