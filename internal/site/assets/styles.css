@@ -1,0 +1,205 @@
+/* Hand-written, served as one file. A landing page for a two-dependency Go
+   binary should not arrive with a toolchain of its own. */
+
+:root {
+  color-scheme: light dark;
+
+  --paper:  #fbfaf7;
+  --raised: #ffffff;
+  --sunken: #f2f0ea;
+  --ink:    #1b1a17;
+  --muted:  #605c53;
+  --line:   #e2ded4;
+  --accent: #a8451a;
+  --accent-soft: #f4ece4;
+
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --measure: 34rem;
+  --wide: 52rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:  #14140f;
+    --raised: #1c1b16;
+    --sunken: #100f0c;
+    --ink:    #eae6dc;
+    --muted:  #9a948a;
+    --line:   #2e2c25;
+    --accent: #e08a53;
+    --accent-soft: #241d17;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:  #14140f;
+  --raised: #1c1b16;
+  --sunken: #100f0c;
+  --ink:    #eae6dc;
+  --muted:  #9a948a;
+  --line:   #2e2c25;
+  --accent: #e08a53;
+  --accent-soft: #241d17;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 17px/1.65 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: var(--wide); margin: 0 auto; padding: 0 1.5rem; }
+.prose { max-width: var(--measure); }
+
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+
+code { font-family: var(--mono); font-size: 0.88em; }
+p code, li code, td code {
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.05em 0.32em;
+}
+
+pre {
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.55;
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  margin: 1.4rem 0;
+  overflow-x: auto;
+}
+pre .prompt { color: var(--accent); user-select: none; }
+pre b { font-weight: 600; }
+
+/* ---------- masthead ---------- */
+
+.masthead {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 1.4rem;
+  font-size: 15px;
+}
+.masthead .name { font-family: var(--mono); font-weight: 600; letter-spacing: -0.01em; }
+.masthead nav { margin-left: auto; display: flex; gap: 1.25rem; align-items: center; }
+.masthead nav a { color: var(--muted); text-decoration: none; }
+.masthead nav a:hover { color: var(--ink); text-decoration: underline; }
+
+#theme {
+  display: none;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  padding: 0.15rem 0.55rem;
+}
+#theme:hover { color: var(--ink); border-color: var(--muted); }
+
+/* ---------- hero ---------- */
+
+.hero { padding-block: 3.5rem 3rem; }
+.hero h1 {
+  font-family: var(--mono);
+  font-size: clamp(2.1rem, 6vw, 3rem);
+  letter-spacing: -0.03em;
+  margin: 0 0 1rem;
+}
+.hero .blurb {
+  font-size: clamp(1.15rem, 2.6vw, 1.4rem);
+  line-height: 1.45;
+  max-width: 30rem;
+  margin: 0 0 1rem;
+}
+.hero .aside { color: var(--muted); max-width: var(--measure); }
+.hero .aside p { margin: 0.5rem 0 0; }
+
+/* ---------- install tabs, CSS-only ---------- */
+
+.install { margin: 2.25rem 0 0; max-width: var(--wide); }
+.install input { position: absolute; opacity: 0; pointer-events: none; }
+.tablist { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.tablist label {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--muted);
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.tablist label:hover { color: var(--ink); }
+.install input:focus-visible + .tablist label,
+.tablist label:focus-within { outline: 2px solid var(--accent); }
+.panel { display: none; }
+.panel pre { margin-top: 0.6rem; }
+.install .note { color: var(--muted); font-size: 14px; margin: 0.4rem 0 0; }
+
+/* ---------- sections ---------- */
+
+section { padding: 3.25rem 0; border-top: 1px solid var(--line); }
+section > .wrap > h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.1rem;
+  max-width: var(--measure);
+}
+section p { margin: 0 0 1.05rem; }
+section ul { margin: 0 0 1.05rem; padding-left: 1.2rem; }
+
+.item { margin: 2rem 0 0; max-width: var(--measure); }
+.item h3 {
+  font-family: var(--mono);
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.4rem;
+}
+.item p { margin: 0; color: var(--muted); }
+
+table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; font-size: 15px; }
+.table-scroll { overflow-x: auto; }
+th, td { text-align: left; padding: 0.5rem 0.9rem 0.5rem 0; border-bottom: 1px solid var(--line); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 600; }
+/* The key column sizes to its content rather than taking half the table. */
+th:first-child, td:first-child { width: 1%; white-space: nowrap; padding-right: 2rem; }
+td:first-child { font-family: var(--mono); font-size: 13.5px; }
+
+/* ---------- footer ---------- */
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 2.5rem 0 4rem;
+  color: var(--muted);
+  font-size: 14px;
+}
+footer .links { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-bottom: 1rem; }
+footer .built { font-family: var(--mono); font-size: 12.5px; }
+
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  pre { font-size: 12px; }
+  .masthead { flex-wrap: wrap; row-gap: 0.5rem; font-size: 13.5px; }
+  .masthead nav { gap: 0.9rem; }
+  .install { max-width: 100%; }
+}
+
+/* The masthead is five items wide; below this it has to be allowed to wrap
+   rather than push itself off the edge of the screen. */
+@media (max-width: 420px) {
+  .masthead .name { flex-basis: 100%; }
+  .masthead nav { margin-left: 0; }
+}

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ .Title }} — {{ .Blurb }}</title>
+<meta name="description" content="{{ .Blurb }}">
+<meta property="og:title" content="{{ .Title }}">
+<meta property="og:description" content="{{ .Blurb }}">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%23a8451a'/><rect x='3' y='3.5' width='3' height='9' rx='1' fill='white'/><rect x='7.5' y='3.5' width='3' height='6' rx='1' fill='white' opacity='.75'/><rect x='12' y='3.5' width='1.5' height='3.5' rx='.75' fill='white' opacity='.5'/></svg>">
+<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
+<style>{{ .CSS }}
+{{- range $i, $m := .Installs }}
+#install-{{ $i }}:checked ~ .tablist label[for="install-{{ $i }}"] { color: var(--ink); background: var(--accent-soft); border-color: var(--accent); }
+#install-{{ $i }}:checked ~ .panels > .panel:nth-child({{ inc $i }}) { display: block; }
+{{- end }}
+</style>
+</head>
+<body>
+
+<header class="masthead wrap">
+  <span class="name">{{ .Title }}</span>
+  <nav>
+    <a href="/llms.txt">llms.txt</a>
+    <a href="{{ .Repo }}">Source</a>
+    <a href="{{ .Repo }}/releases">Releases</a>
+    <button id="theme" type="button" aria-label="Switch between light and dark">Theme</button>
+  </nav>
+</header>
+
+<main>
+
+<div class="hero wrap">
+  <h1>{{ .Title }}</h1>
+  <p class="blurb">{{ .Blurb }}</p>
+  <div class="aside prose">{{ .Hero.Body }}</div>
+
+  <div class="install">
+    {{- range $i, $m := .Installs }}
+    <input type="radio" name="install" id="install-{{ $i }}"{{ if eq $i 0 }} checked{{ end }}>
+    {{- end }}
+    <div class="tablist">
+      {{- range $i, $m := .Installs }}
+      <label for="install-{{ $i }}">{{ $m.Name }}</label>
+      {{- end }}
+    </div>
+    <div class="panels">
+      {{- range .Installs }}
+      <div class="panel"><pre><code>{{ .Command }}</code></pre></div>
+      {{- end }}
+    </div>
+    <p class="note">Every terminal block on this page is captured output, from the board this project runs on.</p>
+  </div>
+
+  {{ with .Hero.SampleHTML }}{{ . }}{{ end }}
+</div>
+
+{{ range .Sections }}
+<section id="{{ .ID }}">
+  <div class="wrap">
+    <h2>{{ md .Title }}</h2>
+    <div class="prose">{{ .Body }}</div>
+    {{ with .SampleHTML }}{{ . }}{{ end }}
+    {{ with .TableHTML }}<div class="table-scroll">{{ . }}</div>{{ end }}
+    {{- range .Items }}
+    <div class="item">
+      <h3>{{ md .Title }}</h3>
+      {{ .Body }}
+    </div>
+    {{- end }}
+  </div>
+</section>
+{{ end }}
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="links">
+      <a href="{{ .Repo }}">Source</a>
+      <a href="{{ .Repo }}/releases">Releases</a>
+      <a href="{{ .Repo }}/blob/main/README.md">README</a>
+      <a href="/llms.txt">llms.txt</a>
+      <a href="{{ .Repo }}/blob/main/LICENSE">MIT licence</a>
+    </div>
+    <p class="built">Generated from {{ .Title }} {{ .Version }} on {{ .Built }}. This page has no facts of its own: it is built from README.md and from the binary's own output.</p>
+  </div>
+</footer>
+
+<script>
+// Progressive enhancement only. Without it the page follows the system theme,
+// which is what most readers want anyway.
+(function () {
+  var btn = document.getElementById('theme');
+  var root = document.documentElement;
+  var saved = null;
+  try { saved = localStorage.getItem('theme'); } catch (e) {}
+  if (saved) root.setAttribute('data-theme', saved);
+  btn.style.display = 'inline-block';
+  btn.addEventListener('click', function () {
+    var dark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+    var next = dark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('theme', next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+name: pages
+
+# The page is generated at deploy time from README.md, site/content.md and the
+# binary's own output. Nothing generated is committed, so the published page
+# cannot be a stale copy of the repository — there is no copy. What CI checks
+# is that generation still finds what it is looking for: the `site` tests in
+# internal/site run on every pull request as part of `go test ./...`, and fail
+# when a marker moves or a section asks for output nobody produces.
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and never cancel one halfway: the site would be
+# left serving whichever half arrived first.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Generate the site
+        env:
+          # Terminal output is captured by running the binary against the
+          # board this project runs on. Projects v2 sits behind its own OAuth
+          # scope, which the workflow's GITHUB_TOKEN does not carry, so the
+          # capture needs a PAT with `project` (read is enough — every
+          # captured command is on the read-only allowlist in
+          # internal/site/samples.go).
+          YAKANBAN_GITHUB_TOKEN: ${{ secrets.YAKANBAN_BOARD_TOKEN }}
+        run: |
+          if [ -z "$YAKANBAN_GITHUB_TOKEN" ]; then
+            echo "::error::YAKANBAN_BOARD_TOKEN is not set. The page shows real" \
+                 "output or it does not publish; it never shows a mockup." >&2
+            exit 1
+          fi
+          make site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
