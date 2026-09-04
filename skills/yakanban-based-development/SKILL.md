@@ -44,8 +44,11 @@ never cached — they go straight to the tracker.
 
 - **Claim before you change anything.** No task edits, no code changes.
 - **One active task per agent.** Keep at most one task in progress per session.
-- **Use `pick`, never list-then-claim.** `pick` detects a task another agent
-  took in between; listing first and claiming afterwards does not.
+- **Take work with `pick` or with `move ID <column> --claim`, never with
+  list-then-claim.** `pick` takes the next available task; `move` takes a
+  named one. Both read the claim back after writing it, so a task another
+  agent took in the meantime is refused with exit code 5. Listing first and
+  claiming afterwards checks nothing.
 - **Never steal a live claim.** If it is claimed, take something else.
   `--force` exists for a human unsticking the board, not for you.
 - **Never release someone else's claim.** Only `--release` your own work, or

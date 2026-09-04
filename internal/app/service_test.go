@@ -629,3 +629,56 @@ func TestListReportsAnUnknownFilterValue(t *testing.T) {
 		t.Fatalf("err = %v, want an unknown column to be reported, not an empty list", err)
 	}
 }
+
+// losingProvider accepts the write and then reports somebody else's claim, the
+// shape of a race where two agents claim the same task in the same instant and
+// the other one's write lands last.
+type losingProvider struct {
+	*fakeProvider
+	winner string
+}
+
+func (l *losingProvider) Update(ctx context.Context, id string, p core.Patch) (*core.Task, error) {
+	task, err := l.fakeProvider.Update(ctx, id, p)
+	if err != nil {
+		return nil, err
+	}
+	task.Claim = &core.Claim{Agent: l.winner, Expires: time.Now().Add(time.Hour)}
+	return task, nil
+}
+
+// `move ID --claim` is the targeted equivalent of pick, and must be just as
+// safe: taking a named task cannot be best-effort while taking the next one is
+// verified.
+func TestATargetedMoveRefusesAClaimThatDidNotSurvive(t *testing.T) {
+	provider := &losingProvider{fakeProvider: newFake(core.Task{ID: "5", Status: "Todo"}), winner: "rival-agent"}
+	s := New(provider, testBoard, Options{ClaimTimeout: time.Hour, Now: time.Now})
+
+	_, err := s.Move(context.Background(), "5", "In Progress", false, false, EditOptions{Agent: "frost-maple"})
+	if !errors.Is(err, core.ErrClaimed) {
+		t.Fatalf("err = %v, want ErrClaimed: the write succeeded but the claim is not ours", err)
+	}
+	if !strings.Contains(err.Error(), "rival-agent") {
+		t.Fatalf("err = %q, want it to name who actually holds the task", err)
+	}
+}
+
+func TestAPlainEditIsNotSubjectToClaimVerification(t *testing.T) {
+	provider := &losingProvider{fakeProvider: newFake(core.Task{ID: "5", Status: "Todo"}), winner: "rival-agent"}
+	s := New(provider, testBoard, Options{ClaimTimeout: time.Hour, Now: time.Now})
+	title := "renamed"
+
+	if _, err := s.Update(context.Background(), "5", core.Patch{Title: &title}, EditOptions{}); err != nil {
+		t.Fatalf("an edit that claims nothing has no claim to verify, got %v", err)
+	}
+}
+
+func TestReleasingIsNotSubjectToClaimVerification(t *testing.T) {
+	now := time.Now()
+	held := core.Task{ID: "5", Status: "Todo", Claim: &core.Claim{Agent: "frost-maple", Expires: now.Add(time.Hour)}}
+	s := newService(newFake(held), now)
+
+	if _, err := s.Update(context.Background(), "5", core.Patch{}, EditOptions{Agent: "frost-maple", Release: true}); err != nil {
+		t.Fatalf("releasing must not be refused for lacking a claim afterwards, got %v", err)
+	}
+}

@@ -101,8 +101,12 @@ different task — `--force` is for a human unsticking the board, not for you.
 - **DO** pass `--claim $AGENT` on every write you make to a task you are
   working on: it renews the claim so it does not expire mid-task.
 - **DO** use `-a` / `--append-body` for notes — `--body` replaces the whole body.
-- **DO** use `pick` rather than list → claim → move: it is the only race-safe
-  way to take work when other agents share the board.
+- **DO** take work with `pick` (next available) or `move ID <column> --claim`
+  (a named ticket). Both verify the claim survived the write, so both are safe
+  when other agents share the board. `pick` cannot target an ID — that is what
+  `move` is for.
+- **DO NOT** take work with list → edit → move: nothing there checks that the
+  task is still yours by the time you write.
 - **DO NOT** use `--json` unless you are parsing the output.
 - **DO NOT** assume a column is called `todo` or `in-progress`; read the board.
 - **DO NOT** use `--next` / `--prev` without knowing the current column: they

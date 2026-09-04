@@ -49,13 +49,17 @@ $ yakanban list --compact --status in-progress
 
 Use `--json` only when piping into another tool.
 
-## Why `pick` rather than list-then-claim
+## Why `pick`, or `move --claim`, rather than list-then-claim
 
-GitHub has no compare-and-swap, so `pick` claims optimistically and reads the
-task back to confirm the claim is ours. A candidate another agent took in the
-meantime comes back as a conflict and the next candidate is tried. Listing
-first and claiming afterwards has no such guard: two agents that list at the
-same moment both believe they own the task.
+No backend here offers compare-and-swap, so a claim is written optimistically
+and then read back to confirm it is ours. Every write that carries `--claim`
+does this, whether it came from `pick` or from `move 42 in-progress --claim`:
+asking for a claim is not holding one, and two agents claiming the same task
+in the same instant both write successfully.
+
+`pick` takes the next available task and moves to the next candidate on a
+conflict. `move ID --claim` takes a named one and fails with exit code 5.
+Listing first and claiming afterwards has no such guard at all.
 
 ## Handling conflicts
 

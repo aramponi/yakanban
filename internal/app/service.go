@@ -232,7 +232,22 @@ func (s *Service) Update(ctx context.Context, id string, p core.Patch, eo EditOp
 	if err := s.checkCapabilities(p); err != nil {
 		return nil, err
 	}
-	return s.provider.Update(ctx, id, p)
+	result, err := s.provider.Update(ctx, id, p)
+	if err != nil {
+		return nil, err
+	}
+	// Asking for a claim is not holding one. No backend here offers
+	// compare-and-swap, so two agents claiming the same task in the same
+	// instant both write successfully and the last one wins. Reading back what
+	// was actually stored is what turns "I asked" into "I hold it" — and it is
+	// free, because providers return the stored task.
+	if eo.Agent != "" && !eo.Release {
+		if !result.Claim.Active(s.now()) || !strings.EqualFold(result.Claim.Agent, eo.Agent) {
+			return nil, fmt.Errorf("%w: %s holds it — your claim did not survive the write",
+				core.ErrClaimed, claimHolder(result))
+		}
+	}
+	return result, nil
 }
 
 // Move changes a task status, supporting absolute names as well as relative
@@ -487,14 +502,12 @@ func (s *Service) Pick(ctx context.Context, o PickOptions) (*core.Task, error) {
 		task, err := s.Update(ctx, candidate.ID, patch, EditOptions{Agent: o.Agent})
 		if err != nil {
 			if errors.Is(err, core.ErrClaimed) {
+				// Somebody took it between the listing and the write, or their
+				// write landed after ours. Either way it is not ours.
 				lastErr = err
-				continue // somebody beat us to it between the list and the write
+				continue
 			}
 			return nil, err
-		}
-		if !task.Claim.Active(s.now()) || !strings.EqualFold(task.Claim.Agent, o.Agent) {
-			lastErr = fmt.Errorf("%w: %s took %s first", core.ErrClaimed, claimHolder(task), task.ID)
-			continue
 		}
 		return task, nil
 	}
