@@ -5,7 +5,7 @@ COMMIT      ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 LDFLAGS     := -s -w -X $(MODULE)/internal/version.Version=$(VERSION) -X $(MODULE)/internal/version.Commit=$(COMMIT)
 GH_EXT_DIR  := $(HOME)/.local/share/gh/extensions/gh-$(BINARY)
 
-.PHONY: all build test check fmt vet install gh-extension clean cross
+.PHONY: all build test check fmt vet lint install gh-extension clean cross
 
 all: check build
 
@@ -17,14 +17,17 @@ build:
 test:
 	go test -race ./...
 
-## check: formatting, vet and tests
-check: fmt vet test
+## check: formatting, vet, lint and tests
+check: fmt vet lint test
 
 fmt:
 	@test -z "$$(gofmt -l . | tee /dev/stderr)" || (echo "run gofmt -w ." && exit 1)
 
 vet:
 	go vet ./...
+
+lint:
+	golangci-lint run ./...
 
 ## install: put the binary in GOBIN
 install:

@@ -264,7 +264,7 @@ func (e *env) chooseAgents(cmd *cobra.Command, o skill.Options) ([]skill.Agent, 
 	reader := bufio.NewReader(cmd.InOrStdin())
 
 	for {
-		fmt.Fprintln(out, "\nInstall the yakanban skills for:")
+		_, _ = fmt.Fprintln(out, "\nInstall the yakanban skills for:")
 		for i, d := range detected {
 			box := " "
 			if selected[i] {
@@ -276,9 +276,9 @@ func (e *env) chooseAgents(cmd *cobra.Command, o skill.Options) ([]skill.Agent, 
 			} else {
 				reason = "found: " + reason
 			}
-			fmt.Fprintf(out, "  [%s] %d) %-9s %s\n", box, i+1, d.Agent, reason)
+			_, _ = fmt.Fprintf(out, "  [%s] %d) %-9s %s\n", box, i+1, d.Agent, reason)
 		}
-		fmt.Fprint(out, "\nToggle with a number, Enter to install, q to cancel: ")
+		_, _ = fmt.Fprint(out, "\nToggle with a number, Enter to install, q to cancel: ")
 
 		line, err := reader.ReadString('\n')
 		answer := strings.TrimSpace(line)
@@ -296,7 +296,7 @@ func (e *env) chooseAgents(cmd *cobra.Command, o skill.Options) ([]skill.Agent, 
 				}
 			}
 			if len(chosen) == 0 {
-				fmt.Fprintln(out, "nothing selected")
+				_, _ = fmt.Fprintln(out, "nothing selected")
 				continue
 			}
 			return chosen, true, nil
@@ -305,7 +305,7 @@ func (e *env) chooseAgents(cmd *cobra.Command, o skill.Options) ([]skill.Agent, 
 		}
 		n, err := strconv.Atoi(answer)
 		if err != nil || n < 1 || n > len(detected) {
-			fmt.Fprintf(out, "%q is not one of 1-%d\n", answer, len(detected))
+			_, _ = fmt.Fprintf(out, "%q is not one of 1-%d\n", answer, len(detected))
 			continue
 		}
 		selected[n-1] = !selected[n-1]

@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -25,10 +29,12 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
+      # This includes TestBundledSkillsAreTheOnesInTheRepository. `skill check`
+      # validates user-installed copies, so it would not add a source-tree gate.
       - run: go test -race ./...
       - run: go build ./cmd/yakanban
 
-  cross-compile:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,4 +42,51 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - run: make cross
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.0
+
+  release-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      - name: Check GoReleaser configuration
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: check
+      - name: Build a release snapshot
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --snapshot --clean
+      - name: Verify the stamped snapshot version
+        shell: bash
+        run: |
+          archive="$(jq -r '
+            map(select(
+              .type == "Archive" and
+              .extra.ID == "yakanban" and
+              .goos == "linux" and
+              .goarch == "amd64"
+            )) | .[0].path // empty
+          ' dist/artifacts.json)"
+          test -n "$archive"
+
+          snapshot_version="$(basename "$archive" | sed -E 's/^yakanban_(.*)_linux_amd64\\.tar\\.gz$/\\1/')"
+          binary="$(jq -r '
+            map(select(
+              .type == "Binary" and
+              .extra.ID == "yakanban" and
+              .goos == "linux" and
+              .goarch == "amd64"
+            )) | .[0].path // empty
+          ' dist/artifacts.json)"
+          test -n "$binary"
+          test "$("$binary" --version)" = "$snapshot_version ($(git rev-parse --short HEAD))"

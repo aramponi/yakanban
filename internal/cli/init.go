@@ -272,16 +272,16 @@ func resolveBranchingModel(cmd *cobra.Command, flag string) (string, error) {
 		return config.ModelTrunkBased, nil
 	}
 	out := cmd.OutOrStdout()
-	fmt.Fprintln(out, "\nHow does this repository branch?")
+	_, _ = fmt.Fprintln(out, "\nHow does this repository branch?")
 	presets := config.Presets()
 	for i, preset := range presets {
 		marker := " "
 		if preset.Name == config.ModelTrunkBased {
 			marker = "*"
 		}
-		fmt.Fprintf(out, "  %s %d) %-12s %s\n", marker, i+1, preset.Name, preset.Description)
+		_, _ = fmt.Fprintf(out, "  %s %d) %-12s %s\n", marker, i+1, preset.Name, preset.Description)
 	}
-	fmt.Fprintf(out, "\nChoice [1]: ")
+	_, _ = fmt.Fprintf(out, "\nChoice [1]: ")
 
 	reader := bufio.NewReader(cmd.InOrStdin())
 	line, err := reader.ReadString('\n')
