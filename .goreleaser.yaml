@@ -1,0 +1,65 @@
+# Releases both entry points from one codebase: the standalone `yakanban`
+# binary, and `gh-yakanban`, which the GitHub CLI picks up as `gh yakanban`.
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: yakanban
+    binary: yakanban
+    main: ./cmd/yakanban
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w
+      - -X github.com/aramponi/yakanban/internal/version.Version={{.Version}}
+      - -X github.com/aramponi/yakanban/internal/version.Commit={{.ShortCommit}}
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+  - id: gh-yakanban
+    binary: gh-yakanban
+    main: ./cmd/yakanban
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w
+      - -X github.com/aramponi/yakanban/internal/version.Version={{.Version}}
+      - -X github.com/aramponi/yakanban/internal/version.Commit={{.ShortCommit}}
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: yakanban
+    ids: [yakanban]
+    name_template: "yakanban_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files: [README.md, LICENSE, docs/*]
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+  # The GitHub CLI downloads extension binaries directly, not archives.
+  - id: gh-extension
+    ids: [gh-yakanban]
+    formats: [binary]
+    name_template: "gh-yakanban_{{ .Version }}_{{ .Os }}-{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^test:", "^chore:"]
+
+release:
+  prerelease: auto
