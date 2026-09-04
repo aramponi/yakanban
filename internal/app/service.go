@@ -5,6 +5,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -49,6 +50,9 @@ func (s *Service) now() time.Time { return s.opts.Now() }
 
 // List returns the tasks matching filter, sorted by field.
 func (s *Service) List(ctx context.Context, f core.Filter, sortField string, reverse bool) ([]core.Task, error) {
+	if err := s.resolveFilter(&f); err != nil {
+		return nil, err
+	}
 	tasks, err := s.provider.List(ctx, f)
 	if err != nil {
 		return nil, err
@@ -73,6 +77,38 @@ func (s *Service) List(ctx context.Context, f core.Filter, sortField string, rev
 		out = out[:f.Limit]
 	}
 	return out, nil
+}
+
+// resolveFilter maps the filter vocabulary onto the board's own spelling, so
+// `--status in-progress` finds the column GitHub calls "In Progress" and a
+// value that matches nothing is reported instead of silently returning an
+// empty list.
+func (s *Service) resolveFilter(f *core.Filter) error {
+	resolve := func(field string, values []string, allowed []string) ([]string, error) {
+		if len(values) == 0 || len(allowed) == 0 {
+			return values, nil
+		}
+		out := make([]string, 0, len(values))
+		for _, v := range values {
+			resolved, err := ResolveVocabulary(v, allowed)
+			if err != nil {
+				return nil, &core.InvalidValueError{Field: field, Value: v, Allowed: allowed}
+			}
+			out = append(out, resolved)
+		}
+		return out, nil
+	}
+	var err error
+	if f.Statuses, err = resolve("status", f.Statuses, s.board.StatusNames()); err != nil {
+		return err
+	}
+	if f.Priorities, err = resolve("priority", f.Priorities, s.board.Priorities); err != nil {
+		return err
+	}
+	if f.Classes, err = resolve("class", f.Classes, s.board.ClassNames()); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Get returns one task.
@@ -329,17 +365,25 @@ func (s *Service) resolveOne(field, v string, allowed []string) (string, error) 
 	return out, nil
 }
 
-// ResolveVocabulary matches v against allowed, exactly first then by
-// unambiguous case-insensitive prefix.
+// ResolveVocabulary matches v against allowed: exactly first, then by
+// unambiguous prefix.
+//
+// Matching ignores case and word separators, so the column GitHub calls
+// "In Progress" answers to `in-progress`, `in_progress` and `inprogress` —
+// the spellings anyone coming from a file-based board will type.
 func ResolveVocabulary(v string, allowed []string) (string, error) {
+	needle := normalizeTerm(v)
+	if needle == "" {
+		return "", core.ErrInvalidInput
+	}
 	for _, a := range allowed {
-		if strings.EqualFold(a, v) {
+		if normalizeTerm(a) == needle {
 			return a, nil
 		}
 	}
 	var hits []string
 	for _, a := range allowed {
-		if strings.HasPrefix(strings.ToLower(a), strings.ToLower(v)) {
+		if strings.HasPrefix(normalizeTerm(a), needle) {
 			hits = append(hits, a)
 		}
 	}
@@ -347,4 +391,157 @@ func ResolveVocabulary(v string, allowed []string) (string, error) {
 		return hits[0], nil
 	}
 	return "", core.ErrInvalidInput
+}
+
+// normalizeTerm lowercases a vocabulary term and drops the separators people
+// vary on.
+func normalizeTerm(v string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(strings.TrimSpace(v)) {
+		switch r {
+		case ' ', '-', '_', '\t':
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// PickOptions narrows what `yakanban pick` is willing to take.
+type PickOptions struct {
+	// Agent is the claim name; required.
+	Agent string
+	// Status restricts the columns to pick from. Empty means every
+	// non-terminal column.
+	Status string
+	// Move optionally sends the picked task to another column.
+	Move string
+	// Tags restricts candidates to tasks carrying any of them.
+	Tags []string
+}
+
+// Pick claims the highest-priority task nobody else holds.
+//
+// The backend has no compare-and-swap, so this is an optimistic claim: the
+// candidate is claimed, then read back to confirm the claim is ours. A task
+// another agent took between the listing and the write comes back as
+// ErrClaimed and the next candidate is tried, which is what makes the loop
+// safe to run from several agents at once.
+func (s *Service) Pick(ctx context.Context, o PickOptions) (*core.Task, error) {
+	if strings.TrimSpace(o.Agent) == "" {
+		return nil, fmt.Errorf("%w: pick needs an agent name (--claim)", core.ErrInvalidInput)
+	}
+	filter := core.Filter{
+		Tags:       o.Tags,
+		Unclaimed:  true,
+		NotBlocked: true,
+		Unblocked:  true,
+	}
+	if o.Status != "" {
+		status, err := s.resolveStatus(o.Status)
+		if err != nil {
+			return nil, err
+		}
+		filter.Statuses = []string{status}
+	}
+	candidates, err := s.List(ctx, filter, "id", false)
+	if err != nil {
+		return nil, err
+	}
+	if filter.Statuses == nil {
+		open := candidates[:0]
+		for _, t := range candidates {
+			if !s.board.IsTerminal(t.Status) {
+				open = append(open, t)
+			}
+		}
+		candidates = open
+	}
+	// Highest priority first, oldest first within a priority. The id sort
+	// above already ordered ties, and SortTasks is stable.
+	core.SortTasks(candidates, "priority", true, s.board.StatusNames(), s.board.Priorities)
+
+	var lastErr error
+	for _, candidate := range candidates {
+		patch := core.Patch{}
+		if o.Move != "" {
+			status, err := s.resolveStatus(o.Move)
+			if err != nil {
+				return nil, err
+			}
+			patch.Status = &status
+		}
+		task, err := s.Update(ctx, candidate.ID, patch, EditOptions{Agent: o.Agent})
+		if err != nil {
+			if errors.Is(err, core.ErrClaimed) {
+				lastErr = err
+				continue // somebody beat us to it between the list and the write
+			}
+			return nil, err
+		}
+		if !task.Claim.Active(s.now()) || !strings.EqualFold(task.Claim.Agent, o.Agent) {
+			lastErr = fmt.Errorf("%w: %s took %s first", core.ErrClaimed, claimHolder(task), task.ID)
+			continue
+		}
+		return task, nil
+	}
+	if lastErr != nil {
+		return nil, fmt.Errorf("no task could be claimed: %w", lastErr)
+	}
+	return nil, fmt.Errorf("%w: no unblocked, unclaimed task to pick", core.ErrNotFound)
+}
+
+func claimHolder(t *core.Task) string {
+	if t.Claim == nil || t.Claim.Agent == "" {
+		return "another agent"
+	}
+	return t.Claim.Agent
+}
+
+// HandoffOptions describes how a task is parked for someone else.
+type HandoffOptions struct {
+	// Agent is the claim name of the agent handing the task over.
+	Agent string
+	// To is the column to park the task in, already resolved by the caller.
+	To string
+	// Note is appended to the task body.
+	Note string
+	// Block, when set, marks the task blocked with this reason.
+	Block string
+	// Release drops the claim after the handoff.
+	Release bool
+	// Timestamp prefixes the note with an ISO-8601 line.
+	Timestamp bool
+}
+
+// Handoff parks a task: it moves it to the waiting column, appends a note
+// explaining where the work stands, and optionally blocks it and lets go of
+// the claim — all in a single write.
+func (s *Service) Handoff(ctx context.Context, id string, o HandoffOptions) (*core.Task, error) {
+	if strings.TrimSpace(o.Agent) == "" {
+		return nil, fmt.Errorf("%w: handoff needs an agent name (--claim)", core.ErrInvalidInput)
+	}
+	status, err := s.resolveStatus(o.To)
+	if err != nil {
+		return nil, err
+	}
+	patch := core.Patch{Status: &status}
+	if o.Note != "" {
+		note := o.Note
+		patch.AppendBody = &note
+	}
+	if o.Block != "" {
+		reason := o.Block
+		patch.Blocked = &reason
+	}
+	// The claim is renewed for the write and released afterwards, so the
+	// handoff itself cannot be raced by another agent.
+	task, err := s.Update(ctx, id, patch, EditOptions{Agent: o.Agent, Timestamp: o.Timestamp})
+	if err != nil {
+		return nil, err
+	}
+	if !o.Release {
+		return task, nil
+	}
+	return s.Update(ctx, id, core.Patch{}, EditOptions{Agent: o.Agent, Release: true})
 }

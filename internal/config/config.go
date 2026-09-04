@@ -53,11 +53,15 @@ type Board struct {
 	Name string `yaml:"name"`
 }
 
-// Defaults are applied to newly created tasks.
+// Defaults are applied to newly created tasks, plus the column `handoff`
+// parks work in.
 type Defaults struct {
 	Status   string `yaml:"status,omitempty"`
 	Priority string `yaml:"priority,omitempty"`
 	Class    string `yaml:"class,omitempty"`
+	// Review is where `yakanban handoff` parks a task: the waiting room for
+	// work that is ready to merge, or blocked on a human.
+	Review string `yaml:"review,omitempty"`
 }
 
 // Cache configures the local read-through cache.
@@ -114,7 +118,7 @@ func Default(name, provider string) *Config {
 			{Name: "standard"},
 			{Name: "intangible"},
 		},
-		Defaults:     Defaults{Status: "Backlog", Priority: "medium", Class: "standard"},
+		Defaults:     Defaults{Status: "Backlog", Priority: "medium", Class: "standard", Review: "Review"},
 		ClaimTimeout: Duration(time.Hour),
 		Cache:        Cache{Enabled: true, TTL: Duration(60 * time.Second)},
 		Providers:    map[string]map[string]any{},

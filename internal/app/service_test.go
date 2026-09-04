@@ -124,6 +124,7 @@ var testBoard = core.BoardInfo{
 		{Name: "Backlog", Initial: true},
 		{Name: "Todo"},
 		{Name: "In Progress", RequireClaim: true},
+		{Name: "Review", RequireClaim: true},
 		{Name: "Done", Terminal: true},
 	},
 	Priorities: []string{"low", "medium", "high", "critical"},
@@ -383,3 +384,248 @@ func TestResolveVocabularyRejectsAmbiguousPrefix(t *testing.T) {
 }
 
 func errorOf(_ *core.Task, err error) error { return err }
+
+func TestPickTakesTheHighestPriorityFirst(t *testing.T) {
+	now := time.Now()
+	f := newFake(
+		core.Task{ID: "1", Status: "Todo", Priority: "low"},
+		core.Task{ID: "2", Status: "Todo", Priority: "critical"},
+		core.Task{ID: "3", Status: "Todo", Priority: "high"},
+	)
+	s := newService(f, now)
+
+	task, err := s.Pick(context.Background(), PickOptions{Agent: "frost-maple", Status: "Todo"})
+	if err != nil {
+		t.Fatalf("Pick: %v", err)
+	}
+	if task.ID != "2" {
+		t.Fatalf("picked %s, want the critical task", task.ID)
+	}
+	if task.Claim == nil || task.Claim.Agent != "frost-maple" {
+		t.Fatalf("the picked task should come back claimed, got %+v", task.Claim)
+	}
+}
+
+func TestPickPrefersTheOldestWithinAPriority(t *testing.T) {
+	f := newFake(
+		core.Task{ID: "9", Status: "Todo", Priority: "high"},
+		core.Task{ID: "2", Status: "Todo", Priority: "high"},
+	)
+	s := newService(f, time.Now())
+
+	task, err := s.Pick(context.Background(), PickOptions{Agent: "a", Status: "Todo"})
+	if err != nil {
+		t.Fatalf("Pick: %v", err)
+	}
+	if task.ID != "2" {
+		t.Fatalf("picked %s, want the older task", task.ID)
+	}
+}
+
+func TestPickSkipsClaimedBlockedAndDependentTasks(t *testing.T) {
+	now := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	f := newFake(
+		core.Task{ID: "1", Status: "Todo", Priority: "critical",
+			Claim: &core.Claim{Agent: "someone-else", Expires: now.Add(time.Hour)}},
+		core.Task{ID: "2", Status: "Todo", Priority: "critical", Blocked: "waiting on legal"},
+		core.Task{ID: "3", Status: "Todo", Priority: "critical", DependsOn: []string{"5"}},
+		core.Task{ID: "4", Status: "Todo", Priority: "low"},
+		core.Task{ID: "5", Status: "Todo", Priority: "low"},
+	)
+	s := newService(f, now)
+
+	task, err := s.Pick(context.Background(), PickOptions{Agent: "frost-maple", Status: "Todo"})
+	if err != nil {
+		t.Fatalf("Pick: %v", err)
+	}
+	if task.ID == "1" || task.ID == "2" || task.ID == "3" {
+		t.Fatalf("picked %s: claimed, blocked and dependent tasks must be skipped", task.ID)
+	}
+}
+
+func TestPickMovesWhenAsked(t *testing.T) {
+	f := newFake(core.Task{ID: "1", Status: "Todo", Priority: "high"})
+	s := newService(f, time.Now())
+
+	task, err := s.Pick(context.Background(), PickOptions{Agent: "a", Status: "Todo", Move: "In Progress"})
+	if err != nil {
+		t.Fatalf("Pick: %v", err)
+	}
+	if task.Status != "In Progress" {
+		t.Fatalf("status = %q, want the pick to have moved it", task.Status)
+	}
+}
+
+func TestPickSkipsTerminalColumnsByDefault(t *testing.T) {
+	f := newFake(
+		core.Task{ID: "1", Status: "Done", Priority: "critical"},
+		core.Task{ID: "2", Status: "Todo", Priority: "low"},
+	)
+	s := newService(f, time.Now())
+
+	task, err := s.Pick(context.Background(), PickOptions{Agent: "a"})
+	if err != nil {
+		t.Fatalf("Pick: %v", err)
+	}
+	if task.ID != "2" {
+		t.Fatalf("picked %s, want finished work to be left alone", task.ID)
+	}
+}
+
+func TestPickReportsAnEmptyBoard(t *testing.T) {
+	s := newService(newFake(), time.Now())
+	_, err := s.Pick(context.Background(), PickOptions{Agent: "a"})
+	if !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestPickRequiresAnAgent(t *testing.T) {
+	s := newService(newFake(core.Task{ID: "1", Status: "Todo"}), time.Now())
+	if _, err := s.Pick(context.Background(), PickOptions{}); !errors.Is(err, core.ErrInvalidInput) {
+		t.Fatalf("err = %v, want the missing --claim to be refused", err)
+	}
+}
+
+// racingProvider hands out a task that another agent claims between the
+// listing and the write — the exact race `pick` exists to survive.
+type racingProvider struct {
+	*fakeProvider
+	stolen map[string]bool
+}
+
+func (r *racingProvider) Get(ctx context.Context, id string) (*core.Task, error) {
+	task, err := r.fakeProvider.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if r.stolen[id] {
+		task.Claim = &core.Claim{Agent: "rival-agent", Expires: time.Now().Add(time.Hour)}
+	}
+	return task, nil
+}
+
+func TestPickSurvivesAStolenCandidate(t *testing.T) {
+	inner := newFake(
+		core.Task{ID: "1", Status: "Todo", Priority: "critical"},
+		core.Task{ID: "2", Status: "Todo", Priority: "high"},
+	)
+	racing := &racingProvider{fakeProvider: inner, stolen: map[string]bool{"1": true}}
+	s := New(racing, testBoard, Options{ClaimTimeout: time.Hour, Now: time.Now})
+
+	task, err := s.Pick(context.Background(), PickOptions{Agent: "frost-maple", Status: "Todo"})
+	if err != nil {
+		t.Fatalf("Pick should fall through to the next candidate, got %v", err)
+	}
+	if task.ID != "2" {
+		t.Fatalf("picked %s, want the task the rival did not take", task.ID)
+	}
+}
+
+func TestHandoffParksBlocksAndReleases(t *testing.T) {
+	now := time.Date(2026, 9, 4, 12, 0, 0, 0, time.UTC)
+	f := newFake(core.Task{ID: "1", Status: "In Progress", Body: "context so far"})
+	s := newService(f, now)
+
+	task, err := s.Handoff(context.Background(), "1", HandoffOptions{
+		Agent:     "frost-maple",
+		To:        "Review",
+		Note:      "Ready to merge: task/1-login",
+		Block:     "Waiting on a product call",
+		Release:   true,
+		Timestamp: true,
+	})
+	if err != nil {
+		t.Fatalf("Handoff: %v", err)
+	}
+	if task.Claim != nil {
+		t.Fatalf("--release should have dropped the claim, got %+v", task.Claim)
+	}
+
+	parked := f.patches[0]
+	if parked.Status == nil || *parked.Status != "Review" {
+		t.Fatalf("status = %v, want Review", parked.Status)
+	}
+	if parked.Blocked == nil || *parked.Blocked != "Waiting on a product call" {
+		t.Fatalf("blocked = %v", parked.Blocked)
+	}
+	body := *parked.Body
+	if !strings.HasPrefix(body, "context so far") || !strings.Contains(body, "Ready to merge") {
+		t.Fatalf("the note should be appended to the existing body, got %q", body)
+	}
+	if !strings.Contains(body, now.Format(time.RFC3339)) {
+		t.Fatalf("--timestamp did not stamp the note: %q", body)
+	}
+}
+
+func TestHandoffKeepsTheClaimWithoutRelease(t *testing.T) {
+	f := newFake(core.Task{ID: "1", Status: "In Progress"})
+	s := newService(f, time.Now())
+
+	task, err := s.Handoff(context.Background(), "1", HandoffOptions{Agent: "frost-maple", To: "Review"})
+	if err != nil {
+		t.Fatalf("Handoff: %v", err)
+	}
+	if task.Claim == nil || task.Claim.Agent != "frost-maple" {
+		t.Fatalf("claim = %+v, want it kept", task.Claim)
+	}
+}
+
+func TestHandoffRefusesAnUnknownColumn(t *testing.T) {
+	s := newService(newFake(core.Task{ID: "1", Status: "Todo"}), time.Now())
+	_, err := s.Handoff(context.Background(), "1", HandoffOptions{Agent: "a", To: "Nowhere"})
+	var invalid *core.InvalidValueError
+	if !errors.As(err, &invalid) {
+		t.Fatalf("err = %v, want the column to be rejected", err)
+	}
+}
+
+func TestResolveVocabularyIgnoresSeparators(t *testing.T) {
+	columns := []string{"Backlog", "In Progress", "Done"}
+	for _, spelling := range []string{"In Progress", "in progress", "in-progress", "in_progress", "inprogress", "INPROGRESS"} {
+		got, err := ResolveVocabulary(spelling, columns)
+		if err != nil || got != "In Progress" {
+			t.Fatalf("ResolveVocabulary(%q) = %q, %v; want In Progress", spelling, got, err)
+		}
+	}
+	if _, err := ResolveVocabulary("", columns); err == nil {
+		t.Fatal("an empty term should not resolve")
+	}
+}
+
+func TestMoveAcceptsAHyphenatedColumn(t *testing.T) {
+	f := newFake(core.Task{ID: "1", Status: "Todo"})
+	s := newService(f, time.Now())
+	task, err := s.Move(context.Background(), "1", "in-progress", false, false, EditOptions{Agent: "a"})
+	if err != nil {
+		t.Fatalf("Move: %v", err)
+	}
+	if task.Status != "In Progress" {
+		t.Fatalf("status = %q, want In Progress", task.Status)
+	}
+}
+
+func TestListResolvesFilterSpelling(t *testing.T) {
+	f := newFake(
+		core.Task{ID: "1", Status: "In Progress"},
+		core.Task{ID: "2", Status: "Todo"},
+	)
+	s := newService(f, time.Now())
+
+	tasks, err := s.List(context.Background(), core.Filter{Statuses: []string{"in-progress"}}, "id", false)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(tasks) != 1 || tasks[0].ID != "1" {
+		t.Fatalf("filtering on a hyphenated column returned %+v", tasks)
+	}
+}
+
+func TestListReportsAnUnknownFilterValue(t *testing.T) {
+	s := newService(newFake(core.Task{ID: "1", Status: "Todo"}), time.Now())
+	_, err := s.List(context.Background(), core.Filter{Statuses: []string{"shipped"}}, "id", false)
+	var invalid *core.InvalidValueError
+	if !errors.As(err, &invalid) {
+		t.Fatalf("err = %v, want an unknown column to be reported, not an empty list", err)
+	}
+}

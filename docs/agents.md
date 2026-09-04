@@ -20,19 +20,17 @@ AGENT=$(yakanban agent-name)
 
 # Orient
 yakanban board --compact
-yakanban list --compact --status todo --unclaimed --not-blocked
 
-# Take the top of the list
-yakanban move 42 in-progress --claim "$AGENT"
-yakanban show 42
+# Take the top of the list — atomic, race-safe
+yakanban pick --claim "$AGENT" --status todo --move in-progress
 
 # Report progress without losing the body
 yakanban edit 42 -a "Reproduced; the session cookie is dropped on redirect." -t --claim "$AGENT"
 
 # Park for a human decision
-yakanban edit 42 --block "Needs a product call on the redirect target" \
-                 -a "Waiting on: which URL to land on after login." -t --release
-yakanban move 42 review
+yakanban handoff 42 --claim "$AGENT" \
+  --block "Needs a product call on the redirect target" \
+  --note "Waiting on: which URL to land on after login." -t --release
 
 # Or finish
 yakanban edit 42 --release
@@ -50,6 +48,14 @@ $ yakanban list --compact --status in-progress
 ```
 
 Use `--json` only when piping into another tool.
+
+## Why `pick` rather than list-then-claim
+
+GitHub has no compare-and-swap, so `pick` claims optimistically and reads the
+task back to confirm the claim is ours. A candidate another agent took in the
+meantime comes back as a conflict and the next candidate is tried. Listing
+first and claiming afterwards has no such guard: two agents that list at the
+same moment both believe they own the task.
 
 ## Handling conflicts
 

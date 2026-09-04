@@ -99,6 +99,8 @@ yakanban move 42 done
 | `create TITLE` | Open an issue and put it on the board |
 | `edit ID` | Change fields, claim, block, append to the body |
 | `move ID STATUS` | Change column (`--next` / `--prev` also work) |
+| `pick --claim AGENT` | Claim the next available task, atomically |
+| `handoff ID --claim AGENT` | Park a task with a note for whoever picks it up |
 | `delete ID --yes` | Close the issue and archive its board item |
 | `board` | Column counts, WIP pressure, blocked and overdue |
 | `sync` | Drop the read cache and refetch |
@@ -127,11 +129,16 @@ grabbing the same ticket. They live in the project as two ordinary fields,
 ```bash
 AGENT=$(yakanban agent-name)                       # e.g. frost-maple-07
 
-yakanban list --compact --status todo --unclaimed --not-blocked
-yakanban move 42 in-progress --claim "$AGENT"      # claim + move in one call
+yakanban pick --claim "$AGENT" --status todo --move in-progress
 yakanban edit 42 -a "Tests green, opening a PR." -t --claim "$AGENT"
+yakanban handoff 42 --claim "$AGENT" --note "Ready to merge: task/42-login" -t --release
 yakanban edit 42 --release && yakanban move 42 done
 ```
+
+`pick` takes the highest-priority task that is unclaimed, unblocked and whose
+dependencies are done. Prefer it over list → edit → move: a task another agent
+takes in between is detected and skipped, which is what makes several agents
+safe on one board.
 
 A write with `--claim` fails with exit code 5 when another agent holds an
 unexpired claim; `--force` overrides it. A plain human edit is never blocked.
@@ -212,9 +219,14 @@ Issues carry the content, the project carries the workflow. See
 
 ## Claude Code / agent skill
 
-`skills/yakanban/SKILL.md` is a ready-made skill: copy it to
-`~/.claude/skills/yakanban/` (or your team's skills directory) and agents get
-the decision tree, the claim protocol and the exit-code handling.
+Two ready-made skills live in `skills/`; copy either to `~/.claude/skills/`
+(or your team's skills directory):
+
+- **`yakanban`** — the decision tree, the claim protocol and the exit codes,
+  for any task or board work.
+- **`yakanban-based-development`** — the autonomous, parallel-safe development
+  loop: pick → worktree → implement → merge → done, with an explicit handoff
+  protocol for anything needing a human.
 
 ## Other backends
 

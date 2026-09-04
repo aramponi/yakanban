@@ -50,7 +50,8 @@ cached locally for a minute, writes always go straight through.
 | Read one task                       | `yakanban show ID` |
 | Create a task                       | `yakanban create "TITLE" --priority high --tags bug` |
 | Create and claim at once            | `yakanban create "TITLE" --claim $AGENT` |
-| Start working on a task             | `yakanban move ID in-progress --claim $AGENT` |
+| Claim the next available task       | `yakanban pick --claim $AGENT --status todo --move in-progress` |
+| Start working on a known task       | `yakanban move ID in-progress --claim $AGENT` |
 | Advance / step back a column        | `yakanban move ID --next` / `--prev` |
 | Complete a task                     | `yakanban move ID done` |
 | Edit fields                         | `yakanban edit ID --title "NEW" --priority high` |
@@ -59,6 +60,7 @@ cached locally for a minute, writes always go straight through.
 | Block / unblock                     | `yakanban edit ID --block "REASON"` / `--unblock` |
 | Add a dependency / a parent         | `yakanban edit ID --add-dep 12 --parent 7` |
 | Append a progress note              | `yakanban edit ID -a "note" -t --claim $AGENT` |
+| Park a task for someone else        | `yakanban handoff ID --claim $AGENT --note "…" -t --release` |
 | Release a claim                     | `yakanban edit ID --release` |
 | Close a task                        | `yakanban delete ID --yes` |
 | See changes made in the web UI      | `yakanban sync` |
@@ -71,16 +73,13 @@ cached locally for a minute, writes always go straight through.
 AGENT=$(yakanban agent-name)                 # once per session, remember it
 
 yakanban board --compact                     # orient
-yakanban list --compact --status todo --unclaimed --not-blocked
-
-yakanban move 42 in-progress --claim "$AGENT"    # claim and move in one call
-yakanban show 42
+yakanban pick --claim "$AGENT" --status todo --move in-progress   # atomic
 
 yakanban edit 42 -a "Reproduced; stale session cookie." -t --claim "$AGENT"
 
 # Park for a human decision
-yakanban edit 42 --block "Needs a product call" -a "Waiting on: …" -t --release
-yakanban move 42 review
+yakanban handoff 42 --claim "$AGENT" --block "Needs a product call" \
+  --note "Waiting on: …" -t --release
 
 # Finish
 yakanban edit 42 --release && yakanban move 42 done
@@ -100,6 +99,8 @@ different task — `--force` is for a human unsticking the board, not for you.
 - **DO** pass `--claim $AGENT` on every write you make to a task you are
   working on: it renews the claim so it does not expire mid-task.
 - **DO** use `-a` / `--append-body` for notes — `--body` replaces the whole body.
+- **DO** use `pick` rather than list → claim → move: it is the only race-safe
+  way to take work when other agents share the board.
 - **DO NOT** use `--json` unless you are parsing the output.
 - **DO NOT** assume a column is called `todo` or `in-progress`; read the board.
 - **DO NOT** use `--next` / `--prev` without knowing the current column: they
