@@ -133,6 +133,14 @@ func tableHTML(t Table) string {
 	return b.String()
 }
 
+// normalise makes what is generated independent of how the repository was
+// checked out. The templates are embedded verbatim, so a CRLF checkout — what
+// Git gives a Windows machine by default — would otherwise put carriage
+// returns in the published files.
+func normalise(s string) string {
+	return strings.ReplaceAll(s, "\r\n", "\n")
+}
+
 // RenderHTML writes the landing page.
 func (p *Page) RenderHTML() (string, error) {
 	t, err := template.New("index.html.tmpl").
@@ -150,7 +158,7 @@ func (p *Page) RenderHTML() (string, error) {
 	if err := t.Execute(&out, p); err != nil {
 		return "", err
 	}
-	return out.String(), nil
+	return normalise(out.String()), nil
 }
 
 // RenderLLMs writes llms.txt, which is plain text and so must not go through
@@ -164,7 +172,7 @@ func (p *Page) RenderLLMs() (string, error) {
 	if err := t.Execute(&out, p); err != nil {
 		return "", err
 	}
-	text := html.UnescapeString(out.String())
+	text := normalise(html.UnescapeString(out.String()))
 	if !strings.HasPrefix(text, "# ") {
 		return "", fmt.Errorf("llms.txt must open with an H1")
 	}

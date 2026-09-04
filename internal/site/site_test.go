@@ -280,6 +280,27 @@ func TestSourcesParseWithEitherLineEnding(t *testing.T) {
 	}
 }
 
+// TestGeneratedFilesAreIndependentOfTheCheckout: the templates are embedded
+// verbatim, so their line endings would otherwise reach the published files
+// and make the site differ by the machine that built it.
+func TestGeneratedFilesAreIndependentOfTheCheckout(t *testing.T) {
+	page, _ := buildFromRepo(t)
+
+	html, err := page.RenderHTML()
+	if err != nil {
+		t.Fatal(err)
+	}
+	llms, err := page.RenderLLMs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, body := range map[string]string{"index.html": html, "llms.txt": llms} {
+		if strings.Contains(body, "\r") {
+			t.Errorf("%s carries a carriage return from the checkout", name)
+		}
+	}
+}
+
 func TestParseReadmeRejectsAStrandedMarker(t *testing.T) {
 	if _, err := ParseReadme("<!-- site:install name=\"Homebrew\" -->\n\njust prose\n"); err == nil {
 		t.Error("a marker with no block under it must fail generation, not publish a hole")
