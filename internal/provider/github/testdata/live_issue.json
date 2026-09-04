@@ -1,0 +1,140 @@
+{
+  "repository": {
+    "issue": {
+      "__typename": "Issue",
+      "assignees": {
+        "nodes": [
+          {
+            "login": "aramponi"
+          }
+        ]
+      },
+      "body": "Steps to reproduce: \u2026",
+      "createdAt": "2026-09-04T09:58:37Z",
+      "id": "I_kwDOUOHPUc8AAAABPrChOQ",
+      "labels": {
+        "nodes": [
+          {
+            "name": "bug"
+          },
+          {
+            "name": "auth"
+          }
+        ]
+      },
+      "number": 1,
+      "projectItems": {
+        "nodes": [
+          {
+            "fieldValues": {
+              "nodes": [
+                {
+                  "__typename": "ProjectV2ItemFieldUserValue"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldRepositoryValue"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldLabelValue"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldTextValue",
+                  "field": {
+                    "name": "Title"
+                  },
+                  "text": "Fix the login redirect (session cookie)"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                  "field": {
+                    "name": "Status"
+                  },
+                  "name": "In Progress"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                  "field": {
+                    "name": "Priority"
+                  },
+                  "name": "high"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                  "field": {
+                    "name": "Class"
+                  },
+                  "name": "expedite"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldTextValue",
+                  "field": {
+                    "name": "Estimate"
+                  },
+                  "text": "4h"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldDateValue",
+                  "date": "2026-09-30",
+                  "field": {
+                    "name": "Due"
+                  }
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldDateValue",
+                  "date": "2026-09-04",
+                  "field": {
+                    "name": "Started"
+                  }
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldTextValue",
+                  "field": {
+                    "name": "Depends On"
+                  },
+                  "text": "2,3"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldTextValue",
+                  "field": {
+                    "name": "Parent"
+                  },
+                  "text": "2"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldTextValue",
+                  "field": {
+                    "name": "Blocked"
+                  },
+                  "text": "waiting on a product call"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldTextValue",
+                  "field": {
+                    "name": "Claim"
+                  },
+                  "text": "frost-maple-07"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldTextValue",
+                  "field": {
+                    "name": "Claim Expires"
+                  },
+                  "text": "2026-09-04T13:00:00Z"
+                }
+              ]
+            },
+            "id": "PVTI_lAHOAA5DEs4Bib7bzg5bEY4",
+            "isArchived": false,
+            "project": {
+              "id": "PVT_kwHOAA5DEs4Bib7b"
+            }
+          }
+        ]
+      },
+      "state": "OPEN",
+      "title": "Fix the login redirect (session cookie)",
+      "updatedAt": "2026-09-04T10:00:26Z",
+      "url": "https://github.com/aramponi/yakanban-sandbox/issues/1"
+    }
+  }
+}

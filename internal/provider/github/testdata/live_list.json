@@ -1,0 +1,195 @@
+{
+  "node": {
+    "items": {
+      "nodes": [
+        {
+          "content": {
+            "__typename": "Issue",
+            "assignees": {
+              "nodes": [
+                {
+                  "login": "aramponi"
+                }
+              ]
+            },
+            "body": "Steps to reproduce: \u2026",
+            "createdAt": "2026-09-04T09:58:37Z",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "bug"
+                },
+                {
+                  "name": "auth"
+                }
+              ]
+            },
+            "number": 1,
+            "state": "OPEN",
+            "title": "Fix the login redirect (session cookie)",
+            "updatedAt": "2026-09-04T10:00:26Z",
+            "url": "https://github.com/aramponi/yakanban-sandbox/issues/1"
+          },
+          "fieldValues": {
+            "nodes": [
+              {
+                "__typename": "ProjectV2ItemFieldUserValue"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldRepositoryValue"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldLabelValue"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "name": "Title"
+                },
+                "text": "Fix the login redirect (session cookie)"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "field": {
+                  "name": "Status"
+                },
+                "name": "In Progress"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "field": {
+                  "name": "Priority"
+                },
+                "name": "high"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "field": {
+                  "name": "Class"
+                },
+                "name": "expedite"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "name": "Estimate"
+                },
+                "text": "4h"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldDateValue",
+                "date": "2026-09-30",
+                "field": {
+                  "name": "Due"
+                }
+              },
+              {
+                "__typename": "ProjectV2ItemFieldDateValue",
+                "date": "2026-09-04",
+                "field": {
+                  "name": "Started"
+                }
+              },
+              {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "name": "Depends On"
+                },
+                "text": "2,3"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "name": "Parent"
+                },
+                "text": "2"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "name": "Blocked"
+                },
+                "text": "waiting on a product call"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "name": "Claim"
+                },
+                "text": "frost-maple-07"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "name": "Claim Expires"
+                },
+                "text": "2026-09-04T13:00:00Z"
+              }
+            ]
+          },
+          "id": "PVTI_lAHOAA5DEs4Bib7bzg5bEY4",
+          "isArchived": false
+        },
+        {
+          "content": {
+            "__typename": "Issue",
+            "assignees": {
+              "nodes": []
+            },
+            "body": "",
+            "createdAt": "2026-09-04T10:01:30Z",
+            "labels": {
+              "nodes": [
+                {
+                  "name": "chore"
+                }
+              ]
+            },
+            "number": 3,
+            "state": "OPEN",
+            "title": "Update the CI matrix",
+            "updatedAt": "2026-09-04T10:01:30Z",
+            "url": "https://github.com/aramponi/yakanban-sandbox/issues/3"
+          },
+          "fieldValues": {
+            "nodes": [
+              {
+                "__typename": "ProjectV2ItemFieldRepositoryValue"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldLabelValue"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldTextValue",
+                "field": {
+                  "name": "Title"
+                },
+                "text": "Update the CI matrix"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "field": {
+                  "name": "Status"
+                },
+                "name": "Todo"
+              },
+              {
+                "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                "field": {
+                  "name": "Priority"
+                },
+                "name": "low"
+              }
+            ]
+          },
+          "id": "PVTI_lAHOAA5DEs4Bib7bzg5bGPU",
+          "isArchived": false
+        }
+      ],
+      "pageInfo": {
+        "endCursor": "Y3Vyc29yOnYyOpK5MDAwMDAwMDAuMzMzMzMzMzMzMzMzMzMzM84OWxj1",
+        "hasNextPage": false
+      }
+    }
+  }
+}

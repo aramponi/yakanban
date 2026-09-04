@@ -95,7 +95,7 @@ query($owner:String!, $number:Int!) {
 }
 fragment P on ProjectV2 {
   id number title url
-  fields(first:50) { nodes {
+  fields(first:100) { nodes {
     __typename
     ... on ProjectV2Field { id name dataType }
     ... on ProjectV2SingleSelectField { id name dataType options { id name } }

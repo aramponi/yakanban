@@ -32,7 +32,7 @@ query($project:ID!, $cursor:String) {
           id
           isArchived
           content { ... on Issue { ...IssueFields } }
-          fieldValues(first:30) { ...FV }
+          fieldValues(first:100) { ...FV }
         }
       }
     }
@@ -50,7 +50,7 @@ query($owner:String!, $repo:String!, $number:Int!) {
           id
           isArchived
           project { id }
-          fieldValues(first:30) { ...FV }
+          fieldValues(first:100) { ...FV }
         }
       }
     }

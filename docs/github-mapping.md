@@ -44,6 +44,17 @@ empty at that point).
 Either way, existing data is never deleted. If you removed a yakanban field by
 hand, `yakanban init --force` recreates it.
 
+## Fixtures
+
+`internal/provider/github/testdata/live_*.json` are real API responses,
+captured with the queries in `queries.go` against a throwaway project. They
+pin two things the documentation cannot: that a fully-populated item already
+returns fifteen field values (hence `fieldValues(first:100)` — truncation
+would silently blank a status or a claim), and that GitHub interleaves value
+types yakanban does not model (`ProjectV2ItemFieldUserValue`,
+`…RepositoryValue`, `…LabelValue`), which the decoder must skip rather than
+choke on.
+
 ## API traffic
 
 | Command | Calls |
