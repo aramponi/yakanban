@@ -55,6 +55,16 @@ Or grab a static binary for macOS, Linux or Windows from the
 [releases](https://github.com/aramponi/yakanban/releases). The Homebrew route
 is macOS-only: it ships as a cask, which is a macOS mechanism.
 
+The Homebrew command is deliberately the fully qualified one: it trusts that
+single cask on the spot. Homebrew 6 requires third-party taps to be trusted,
+so the short form needs one extra step:
+
+```bash
+brew tap aramponi/tap
+brew trust --cask aramponi/tap/yakanban
+brew install yakanban
+```
+
 ### As a GitHub CLI extension
 
 The same binary answers to `gh yakanban ...` when it is installed under the
@@ -65,7 +75,10 @@ make gh-extension     # builds and installs into gh's extension directory
 gh yakanban board
 ```
 
-Both entry points run the same code; use whichever fits your muscle memory.
+This is a local build, not a release artifact. `gh extension install` resolves
+a *repository* whose name begins with `gh-`, which this one does not, so a
+published `gh-yakanban` binary could never be installed the documented way.
+Shipping one would have been dead weight in every release.
 
 ## Authentication
 

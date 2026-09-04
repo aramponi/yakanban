@@ -1,5 +1,9 @@
-# Releases both entry points from one codebase: the standalone `yakanban`
-# binary, and `gh-yakanban`, which the GitHub CLI picks up as `gh yakanban`.
+# Releases the standalone `yakanban` binary.
+#
+# The GitHub CLI extension is deliberately not published here: `gh extension
+# install` resolves a *repository* whose name starts with gh-, which this one
+# does not, so the binaries could never be installed through the documented
+# path. `make gh-extension` builds the same code locally instead.
 version: 2
 
 before:
@@ -22,20 +26,6 @@ builds:
       - goos: windows
         goarch: arm64
 
-  - id: gh-yakanban
-    binary: gh-yakanban
-    main: ./cmd/yakanban
-    env: [CGO_ENABLED=0]
-    flags: [-trimpath]
-    ldflags:
-      - -s -w
-      - -X github.com/aramponi/yakanban/internal/version.Version={{.Version}}
-      - -X github.com/aramponi/yakanban/internal/version.Commit={{.ShortCommit}}
-    goos: [darwin, linux, windows]
-    goarch: [amd64, arm64]
-    ignore:
-      - goos: windows
-        goarch: arm64
 
 archives:
   - id: yakanban
@@ -46,50 +36,6 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
-
-  # The GitHub CLI downloads extension binaries directly, not archives.
-  - id: gh-extension
-    ids: [gh-yakanban]
-    formats: [binary]
-    name_template: "gh-yakanban_{{ .Version }}_{{ .Os }}-{{ .Arch }}"
-
-# Published to aramponi/homebrew-tap, which Homebrew reads as the tap
-# "aramponi/tap". GoReleaser deprecated formula generation for pre-compiled
-# binaries in favour of casks, which are macOS-only: Linux users install with
-# `go install` or the tarball, and the README says so.
-#
-# Only the yakanban archives are installable this way; gh-yakanban is a GitHub
-# CLI extension, not a command a cask should link.
-homebrew_casks:
-  - name: yakanban
-    ids: [yakanban]
-    binaries: [yakanban]
-    repository:
-      owner: aramponi
-      name: homebrew-tap
-      branch: main
-      # GITHUB_TOKEN is scoped to this repository, so pushing the cask to
-      # another one needs a token of its own.
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    homepage: https://github.com/aramponi/yakanban
-    description: Kanban over your real ticket tracker, for humans and AI agents
-    commit_author:
-      name: goreleaser
-      email: noreply@github.com
-    commit_msg_template: "yakanban {{ .Tag }}"
-    hooks:
-      post:
-        # The release binaries are not signed or notarised, so Gatekeeper
-        # would refuse to run them straight out of a downloaded archive.
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/yakanban"]
-          end
-    caveats: |
-      yakanban authenticates through the GitHub CLI. If you have not already:
-
-        gh auth login
-        gh auth refresh -s project   # Projects v2 needs its own scope
 
 checksum:
   name_template: checksums.txt
