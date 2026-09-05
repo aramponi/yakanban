@@ -27,7 +27,6 @@ cmd/yakanban ──▶ internal/cli ──▶ internal/app ──▶ internal/co
 ```go
 type Provider interface {
     Name() string
-    Capabilities() Capability
     Board(ctx context.Context) (*BoardInfo, error)
     List(ctx context.Context, filter Filter) ([]Task, error)
     Get(ctx context.Context, id string) (*Task, error)
@@ -53,18 +52,32 @@ chain to do that; new optional ports should follow the same shape.
 
 ### Capabilities rather than a lowest common denominator
 
-Not every tracker can express every field. Instead of shrinking the model to
-what all of them share, a provider advertises what it supports:
+Not every tracker can express every field. A provider resolves a
+`BoardInfo.Capabilities` set alongside the live schema. It contains supported
+bits and a backend explanation for each unavailable feature:
 
 ```go
-func (p *Provider) Capabilities() core.Capability {
-    return core.CapClaims | core.CapDependencies | core.CapParent |
-        core.CapBlocked | core.CapEstimate | core.CapClass | core.CapDueDate
+board.Capabilities = &core.CapabilitySet{
+    Supported: core.CapEstimate | core.CapClass | core.CapDueDate,
+    Reasons: map[core.Capability]string{
+        core.CapDependencies: "dependencies need Premium; this namespace is Free",
+    },
 }
 ```
 
-The service checks the patch against them and fails with a clear message —
-`provider X cannot store dependencies` — instead of silently dropping data.
+The board cache persists the set and its reasons together; refresh invalidates
+both. `yakanban config` displays named supported/unsupported features in human
+and JSON output. An unavailable schema is an error, never a guessed licence.
+
+Create and edit validate requested fields before writing. Branch/delete/pick
+operations also check their capabilities. Automatic workflow timestamps are
+only written when `CapWorkflowDates` is present; explicit date edits otherwise
+fail. GitLab's native `closed_at` can still be read without claiming it is
+writable. GitHub retains all of its previous capabilities and timestamp behavior.
+
+The old `Capabilities() Capability` method remains an optional compatibility
+bridge for existing adapters. New adapters implement the board metadata contract;
+the service no longer requires a compile-time capability constant.
 
 Anything a backend knows and the domain does not goes into
 `Task.Metadata map[string]any` (the GitHub adapter puts the project item ID and
@@ -114,19 +127,26 @@ model.
 
 1. Create `internal/provider/<name>/` with a type implementing `core.Provider`.
 2. Map the domain onto the backend, and put whatever is left in `Metadata`.
-3. Report honest `Capabilities()`.
+3. Resolve honest `BoardInfo.Capabilities` and backend refusal reasons.
 4. Wrap backend errors around the sentinels in `core/errors.go`
    (`ErrNotFound`, `ErrAuth`, `ErrClaimed`, …) so exit codes stay meaningful.
 5. Implement `Bootstrapper` if `yakanban init` should be able to create the
    board.
 6. Add one entry to `internal/registry/registry.go`.
 
-Nothing in `internal/core`, `internal/app` or `internal/cli` changes.
+Adapters should not require provider-specific domain or service changes. The
+GitLab implementation exposed two existing port gaps: automatic workflow dates
+are now optional, and `init --set key=value` passes generic provider settings.
+Remote detection accepts nested namespaces on any forge; none of these paths
+branches on a GitLab provider name. These findings are recorded in
+[gitlab-mapping.md](gitlab-mapping.md).
 
 ## Testing
 
 - `internal/core`, `internal/app`: pure unit tests, with an in-memory provider
   that records the patches it receives.
+- `internal/provider/gitlab`: captured GitLab Free response envelopes replayed
+  through an `httptest` server, with separately identified paid/fault injections.
 - `internal/provider/github`: an `httptest` server replaying real GitHub
   payloads, asserting which call goes to REST and which to GraphQL.
 - `internal/provider/cached`: a counting provider proving what is cached and

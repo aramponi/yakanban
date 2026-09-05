@@ -491,6 +491,13 @@ func (s *Service) Pick(ctx context.Context, o PickOptions) (*core.Task, error) {
 	if strings.TrimSpace(o.Agent) == "" {
 		return nil, fmt.Errorf("%w: pick needs an agent name (--claim)", core.ErrInvalidInput)
 	}
+	caps, err := core.ResolveCapabilities(ctx, s.provider)
+	if err != nil {
+		return nil, err
+	}
+	if err := caps.Require(s.provider.Name(), core.CapClaims); err != nil {
+		return nil, err
+	}
 	filter := core.Filter{
 		Tags:       o.Tags,
 		Unclaimed:  true,
