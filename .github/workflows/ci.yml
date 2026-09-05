@@ -60,6 +60,8 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Check release signing and provenance contract
+        run: go test ./internal/releasecheck
       - name: Check GoReleaser configuration
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -69,7 +71,8 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
-          args: release --snapshot --clean
+          # PRs (including forks) have no release OIDC identity.
+          args: release --snapshot --clean --skip=sign
       - name: Verify the stamped snapshot version
         shell: bash
         run: |
