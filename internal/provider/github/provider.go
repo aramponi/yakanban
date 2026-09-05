@@ -57,7 +57,7 @@ func (p *Provider) TokenOrigin() string { return p.tokenOrigin }
 func (p *Provider) Capabilities() core.Capability {
 	return core.CapClaims | core.CapDependencies | core.CapParent | core.CapBlocked |
 		core.CapEstimate | core.CapClass | core.CapDueDate | core.CapArchive |
-		core.CapLinkedBranch
+		core.CapLinkedBranch | core.CapWorkflowDates
 }
 
 // Board returns the live board description, read from the project itself.

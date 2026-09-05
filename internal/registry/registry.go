@@ -14,12 +14,20 @@ import (
 	"github.com/aramponi/yakanban/internal/config"
 	"github.com/aramponi/yakanban/internal/core"
 	"github.com/aramponi/yakanban/internal/provider/github"
+	"github.com/aramponi/yakanban/internal/provider/gitlab"
 )
 
 // Factory builds a provider from the board descriptor.
 type Factory func(cfg *config.Config, store *cache.Store, userAgent string) (core.Provider, error)
 
 var factories = map[string]Factory{
+	gitlab.ProviderName: func(cfg *config.Config, store *cache.Store, ua string) (core.Provider, error) {
+		settings, err := gitlab.ParseSettings(cfg.Settings(gitlab.ProviderName))
+		if err != nil {
+			return nil, err
+		}
+		return gitlab.New(settings, ua, store)
+	},
 	github.ProviderName: func(cfg *config.Config, store *cache.Store, ua string) (core.Provider, error) {
 		settings, err := github.ParseSettings(cfg.Settings(github.ProviderName))
 		if err != nil {

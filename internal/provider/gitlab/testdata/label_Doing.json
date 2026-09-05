@@ -1,0 +1,26 @@
+{
+  "captured_at": "2026-09-04T22:23:41.968897+00:00",
+  "method": "POST",
+  "path": "projects/aramponi%2Fmysandbox/labels",
+  "request": {
+    "name": "Doing",
+    "color": "#428BCA"
+  },
+  "status": 201,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Fri, 04 Sep 2026 22:23:41 GMT"
+  },
+  "body": {
+    "id": 53388806,
+    "name": "Doing",
+    "description": null,
+    "text_color": "#FFFFFF",
+    "description_html": "",
+    "color": "#428BCA",
+    "archived": false,
+    "subscribed": false,
+    "priority": null,
+    "is_project_label": true
+  }
+}

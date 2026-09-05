@@ -141,6 +141,10 @@ func mergeBoard(cfg *config.Config, live *core.BoardInfo) core.BoardInfo {
 	}
 	board.URL = live.URL
 	board.Metadata = live.Metadata
+	board.Capabilities = live.Capabilities
+	if len(live.Classes) > 0 {
+		board.Classes = adoptClasses(board.Classes, live.Classes)
+	}
 	if len(live.Priorities) > 0 {
 		board.Priorities = live.Priorities
 	}

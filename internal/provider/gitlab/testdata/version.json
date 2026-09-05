@@ -1,0 +1,22 @@
+{
+  "captured_at": "2026-09-04T22:23:41.087541+00:00",
+  "method": "GET",
+  "path": "version",
+  "request": null,
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Fri, 04 Sep 2026 22:23:41 GMT"
+  },
+  "body": {
+    "version": "19.4.0-pre",
+    "revision": "e53e1e5c151",
+    "kas": {
+      "enabled": true,
+      "externalUrl": "wss://kas.gitlab.com",
+      "externalK8sProxyUrl": "https://kas.gitlab.com/k8s-proxy",
+      "version": "19.4.0-rc2+e2d47cb17b56bb674e20e03ae04917e05df9efd2"
+    },
+    "enterprise": true
+  }
+}

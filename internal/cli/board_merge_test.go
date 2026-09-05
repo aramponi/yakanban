@@ -134,3 +134,21 @@ func TestAnUnreachableBoardFallsBackToTheDescriptor(t *testing.T) {
 		t.Fatal("with no live board, the committed columns should still be usable")
 	}
 }
+
+func TestMergeBoardUsesLiveClassVocabulary(t *testing.T) {
+	cfg := config.Default("test", "github")
+	live := &core.BoardInfo{Classes: []core.Class{{Name: "backend-added"}}}
+	got := mergeBoard(cfg, live)
+	if len(got.Classes) != 1 || got.Classes[0].Name != "backend-added" {
+		t.Fatalf("live classes lost: %+v", got.Classes)
+	}
+}
+
+func TestMergeBoardPreservesLocalClassPolicy(t *testing.T) {
+	cfg := config.Default("test", "github")
+	live := &core.BoardInfo{Classes: []core.Class{{Name: "Expedite"}, {Name: "new"}}}
+	got := mergeBoard(cfg, live)
+	if got.Classes[0].Name != "Expedite" || got.Classes[0].WIPLimit != 1 || !got.Classes[0].BypassColumnWIP {
+		t.Fatalf("backend vocabulary overwrote local class policy: %+v", got.Classes[0])
+	}
+}

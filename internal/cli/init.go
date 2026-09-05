@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,6 +30,7 @@ func newInitCommand(e *env) *cobra.Command {
 		statuses  []string
 		force     bool
 		wipLimits []string
+		settings  []string
 		branching string
 	)
 	cmd := &cobra.Command{
@@ -40,6 +42,10 @@ With --project, an existing GitHub Project v2 is adopted as-is: its columns
 stay untouched and yakanban only adds the custom fields it needs (Priority,
 Class, Claim, Blocked, Depends On...). Without it, a new project is created,
 linked to the repository and given the default columns.
+
+Other providers accept their settings through --set key=value, for example:
+  yakanban init --provider gitlab --set project=group/repo --branching trunk-based
+  yakanban init --provider gitlab --set project=group/repo --set board_id=12 --set host=gitlab.example.com --branching trunk-based
 
 Run it again with --force after changing the descriptor to re-apply it.`,
 		Args: cobra.NoArgs,
@@ -53,6 +59,7 @@ Run it again with --force after changing the descriptor to re-apply it.`,
 				return fmt.Errorf("%w: %s already exists (pass --force to re-apply it)", core.ErrInvalidInput, target)
 			}
 
+			autoRepository := owner == "" && repo == "" && len(settings) == 0
 			detected := detectRepo(e.workDir())
 			if owner == "" {
 				owner = detected.owner
@@ -60,11 +67,14 @@ Run it again with --force after changing the descriptor to re-apply it.`,
 			if repo == "" {
 				repo = detected.repo
 			}
-			if owner == "" || repo == "" {
-				return fmt.Errorf("%w: could not detect the GitHub repository; pass --owner and --repo", core.ErrInvalidInput)
+			if (owner == "" || repo == "") && len(settings) == 0 {
+				return fmt.Errorf("%w: could not detect the repository; pass --owner and --repo or provider --set options", core.ErrInvalidInput)
 			}
 			if name == "" {
 				name = repo
+				if name == "" {
+					name = filepath.Base(e.workDir())
+				}
 			}
 
 			cfg := config.Default(name, provider)
@@ -91,6 +101,20 @@ Run it again with --force after changing the descriptor to re-apply it.`,
 				"project_number": project,
 			}
 
+			if autoRepository && detected.host != "" {
+				cfg.Providers[provider]["host"] = detected.host
+			}
+			providerOptions := map[string]string{}
+			for _, setting := range settings {
+				key, value, ok := strings.Cut(setting, "=")
+				if !ok || strings.TrimSpace(key) == "" {
+					return fmt.Errorf("%w: --set expects key=value", core.ErrInvalidInput)
+				}
+				key = strings.TrimSpace(key)
+				cfg.Providers[provider][key] = value
+				providerOptions[key] = value
+			}
+
 			// The cache is deliberately disabled here: init must see the
 			// project exactly as it is right now.
 			raw, err := registry.Open(cfg, cache.New("", 0, false), version.UserAgent())
@@ -106,6 +130,7 @@ Run it again with --force after changing the descriptor to re-apply it.`,
 				Statuses:   cfg.Statuses,
 				Priorities: cfg.Priorities,
 				Classes:    cfg.Classes,
+				Options:    providerOptions,
 			})
 			if err != nil {
 				return err
@@ -116,6 +141,17 @@ Run it again with --force after changing the descriptor to re-apply it.`,
 				}
 			}
 			cfg.Statuses = adoptStatuses(cfg.Statuses, board.Statuses)
+			if board.Capabilities != nil && !board.Capabilities.Has(core.CapClaims) {
+				for i := range cfg.Statuses {
+					cfg.Statuses[i].RequireClaim = false
+				}
+			}
+			if len(board.Priorities) > 0 {
+				cfg.Priorities = board.Priorities
+			}
+			if len(board.Classes) > 0 {
+				cfg.Classes = adoptClasses(cfg.Classes, board.Classes)
+			}
 			cfg.Defaults.Status = cfg.Statuses[0].Name
 			cfg.Defaults.Review = adoptReview(cfg.Defaults.Review, cfg.Statuses)
 			if err := cfg.Save(target); err != nil {
@@ -148,9 +184,10 @@ Run it again with --force after changing the descriptor to re-apply it.`,
 		},
 	}
 	fl := cmd.Flags()
+	fl.StringArrayVar(&settings, "set", nil, "provider setting as key=value (repeatable; never store credentials)")
 	fl.StringVar(&provider, "provider", "github", "backend provider ("+strings.Join(registry.Names(), ", ")+")")
-	fl.StringVar(&owner, "owner", "", "GitHub user or organization (default: from the git remote)")
-	fl.StringVar(&repo, "repo", "", "GitHub repository (default: from the git remote)")
+	fl.StringVar(&owner, "owner", "", "repository owner or namespace (default: from the git remote)")
+	fl.StringVar(&repo, "repo", "", "repository name (default: from the git remote)")
 	fl.IntVar(&project, "project", 0, "adopt this existing Projects v2 number instead of creating one")
 	fl.StringVar(&name, "name", "", "board name (default: the repository name)")
 	fl.StringSliceVar(&statuses, "statuses", nil, "comma-separated column names (only applied to a new project)")
@@ -315,12 +352,35 @@ func interactive() bool {
 	return true
 }
 
-type repoRef struct{ owner, repo string }
+type repoRef struct{ host, owner, repo string }
 
-var remotePattern = regexp.MustCompile(`(?:github\.com[:/])([^/]+)/([^/]+?)(?:\.git)?$`)
+var scpRemotePattern = regexp.MustCompile(`^(?:[^@/]+@)?([^/:]+):(.+)$`)
 
-// detectRepo reads the origin remote, so `yakanban init` needs no flags in a
-// checked-out repository.
+func parseRemote(raw string) repoRef {
+	var host, path string
+	if strings.Contains(raw, "://") {
+		u, err := url.Parse(raw)
+		if err != nil || (u.Scheme != "https" && u.Scheme != "http" && u.Scheme != "ssh") || u.Host == "" {
+			return repoRef{}
+		}
+		host, path = u.Host, strings.TrimPrefix(u.Path, "/")
+	} else {
+		m := scpRemotePattern.FindStringSubmatch(raw)
+		if len(m) != 3 {
+			return repoRef{}
+		}
+		host, path = m[1], m[2]
+	}
+	path = strings.TrimSuffix(path, ".git")
+	index := strings.LastIndex(path, "/")
+	if index <= 0 || index == len(path)-1 {
+		return repoRef{}
+	}
+	return repoRef{host: host, owner: path[:index], repo: path[index+1:]}
+}
+
+// detectRepo accepts HTTPS, SSH URLs and scp-style remotes on any forge,
+// including nested namespaces. Provider settings still decide the API host.
 func detectRepo(dir string) repoRef {
 	cmd := exec.Command("git", "remote", "get-url", "origin")
 	cmd.Dir = dir
@@ -328,11 +388,7 @@ func detectRepo(dir string) repoRef {
 	if err != nil {
 		return repoRef{}
 	}
-	m := remotePattern.FindStringSubmatch(strings.TrimSpace(string(out)))
-	if len(m) != 3 {
-		return repoRef{}
-	}
-	return repoRef{owner: m[1], repo: m[2]}
+	return parseRemote(strings.TrimSpace(string(out)))
 }
 
 // ignoreCacheDir keeps the local cache out of version control.
@@ -354,4 +410,22 @@ func ignoreCacheDir(root string) error {
 	}
 	content += entry + "\n"
 	return os.WriteFile(path, []byte(content), 0o644)
+}
+
+// adoptClasses refreshes vocabulary without discarding local WIP policy.
+func adoptClasses(local, live []core.Class) []core.Class {
+	byName := make(map[string]core.Class, len(local))
+	for _, class := range local {
+		byName[strings.ToLower(class.Name)] = class
+	}
+	out := make([]core.Class, 0, len(live))
+	for _, class := range live {
+		if existing, ok := byName[strings.ToLower(class.Name)]; ok {
+			existing.Name = class.Name
+			out = append(out, existing)
+		} else {
+			out = append(out, class)
+		}
+	}
+	return out
 }

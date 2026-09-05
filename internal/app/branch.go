@@ -96,6 +96,13 @@ func (s *Service) render(what, text string, task core.Task, o BranchOptions) (st
 // an agent must know the branch name before the branch exists, so it can
 // create its local branch from the same commit without fetching.
 func (s *Service) CreateBranch(ctx context.Context, id string, o BranchOptions) (*core.Branch, error) {
+	caps, err := core.ResolveCapabilities(ctx, s.provider)
+	if err != nil {
+		return nil, err
+	}
+	if err := caps.Require(s.provider.Name(), core.CapLinkedBranch); err != nil {
+		return nil, err
+	}
 	brancher, ok := core.AsBrancher(s.provider)
 	if !ok {
 		return nil, fmt.Errorf("%w: provider %s cannot attach a branch to a task", core.ErrUnsupported, s.provider.Name())
@@ -128,6 +135,13 @@ func (s *Service) BackMergeNote(task core.Task) string { return s.opts.Branching
 
 // Branches lists the branches attached to a task.
 func (s *Service) Branches(ctx context.Context, id string) ([]core.Branch, error) {
+	caps, err := core.ResolveCapabilities(ctx, s.provider)
+	if err != nil {
+		return nil, err
+	}
+	if err := caps.Require(s.provider.Name(), core.CapLinkedBranch); err != nil {
+		return nil, err
+	}
 	brancher, ok := core.AsBrancher(s.provider)
 	if !ok {
 		return nil, fmt.Errorf("%w: provider %s does not track branches", core.ErrUnsupported, s.provider.Name())
@@ -137,6 +151,13 @@ func (s *Service) Branches(ctx context.Context, id string) ([]core.Branch, error
 
 // UnlinkBranch detaches a branch from its task without deleting the ref.
 func (s *Service) UnlinkBranch(ctx context.Context, branchID string) error {
+	caps, err := core.ResolveCapabilities(ctx, s.provider)
+	if err != nil {
+		return err
+	}
+	if err := caps.Require(s.provider.Name(), core.CapLinkedBranch); err != nil {
+		return err
+	}
 	brancher, ok := core.AsBrancher(s.provider)
 	if !ok {
 		return fmt.Errorf("%w: provider %s does not track branches", core.ErrUnsupported, s.provider.Name())

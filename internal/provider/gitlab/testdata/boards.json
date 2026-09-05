@@ -1,0 +1,83 @@
+{
+  "captured_at": "2026-09-04T22:23:47.559723+00:00",
+  "method": "GET",
+  "path": "projects/aramponi%2Fmysandbox/boards",
+  "request": null,
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Fri, 04 Sep 2026 22:23:47 GMT",
+    "link": "<https://gitlab.com/api/v4/projects/aramponi%2Fmysandbox/boards?id=aramponi%2Fmysandbox&page=1&per_page=20>; rel=\"first\", <https://gitlab.com/api/v4/projects/aramponi%2Fmysandbox/boards?id=aramponi%2Fmysandbox&page=1&per_page=20>; rel=\"last\"",
+    "x-next-page": "",
+    "x-page": "1",
+    "x-per-page": "20",
+    "x-prev-page": "",
+    "x-total": "1",
+    "x-total-pages": "1"
+  },
+  "body": [
+    {
+      "id": 11585676,
+      "name": "yakanban live validation",
+      "hide_backlog_list": false,
+      "hide_closed_list": false,
+      "project": {
+        "id": 86114941,
+        "description": null,
+        "name": "mysandbox",
+        "name_with_namespace": "Antoine Ramponi / mysandbox",
+        "path": "mysandbox",
+        "path_with_namespace": "aramponi/mysandbox",
+        "created_at": "2026-09-04T22:15:23.118Z",
+        "tag_list": [],
+        "topics": [],
+        "ssh_url_to_repo": "git@gitlab.com:aramponi/mysandbox.git",
+        "http_url_to_repo": "https://gitlab.com/aramponi/mysandbox.git",
+        "web_url": "https://gitlab.com/aramponi/mysandbox",
+        "avatar_url": null,
+        "star_count": 0,
+        "last_activity_at": "2026-09-04T22:15:22.983Z",
+        "visibility": "private",
+        "namespace": {
+          "id": 53636805,
+          "name": "Antoine Ramponi",
+          "path": "aramponi",
+          "kind": "user",
+          "full_path": "aramponi",
+          "parent_id": null,
+          "avatar_url": "https://secure.gravatar.com/avatar/008a30ea478e2719514dda5549d7c6981e165c108dd2bf9859a6ec629a76edc9?s=80&d=identicon",
+          "web_url": "https://gitlab.com/aramponi"
+        }
+      },
+      "lists": [
+        {
+          "id": 25678470,
+          "label": {
+            "id": 53388806,
+            "name": "Doing",
+            "description": null,
+            "text_color": "#FFFFFF",
+            "description_html": "",
+            "color": "#428BCA",
+            "archived": false
+          },
+          "position": 0
+        },
+        {
+          "id": 25678471,
+          "label": {
+            "id": 53388807,
+            "name": "Review",
+            "description": null,
+            "text_color": "#FFFFFF",
+            "description_html": "",
+            "color": "#428BCA",
+            "archived": false
+          },
+          "position": 1
+        }
+      ],
+      "group": null
+    }
+  ]
+}

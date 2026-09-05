@@ -156,6 +156,10 @@ func (s *Service) Create(ctx context.Context, d core.Draft) (*core.Task, error) 
 	if d.Claim != nil && d.Claim.Agent != "" {
 		d.Claim.Expires = s.now().Add(s.opts.ClaimTimeout)
 	}
+	if err := s.checkCapabilities(ctx, core.Patch{AddDeps: d.DependsOn, Claim: d.Claim, Due: d.Due,
+		Parent: nonempty(d.Parent), Estimate: nonempty(d.Estimate), Class: nonempty(d.Class)}); err != nil {
+		return nil, err
+	}
 	return s.provider.Create(ctx, d)
 }
 
@@ -190,7 +194,13 @@ func (s *Service) Update(ctx context.Context, id string, p core.Patch, eo EditOp
 			return nil, err
 		}
 		p.Status = &st
-		s.stampTransition(cur, &p, st, now)
+		caps, err := core.ResolveCapabilities(ctx, s.provider)
+		if err != nil {
+			return nil, err
+		}
+		if caps.Has(core.CapWorkflowDates) {
+			s.stampTransition(cur, &p, st, now)
+		}
 	}
 	if p.Priority != nil {
 		v, err := s.resolveOne("priority", *p.Priority, s.board.Priorities)
@@ -229,7 +239,7 @@ func (s *Service) Update(ctx context.Context, id string, p core.Patch, eo EditOp
 	if p.IsEmpty() {
 		return cur, nil
 	}
-	if err := s.checkCapabilities(p); err != nil {
+	if err := s.checkCapabilities(ctx, p); err != nil {
 		return nil, err
 	}
 	result, err := s.provider.Update(ctx, id, p)
@@ -287,6 +297,15 @@ func (s *Service) Move(ctx context.Context, id, status string, next, prev bool, 
 
 // Delete removes or archives a task.
 func (s *Service) Delete(ctx context.Context, id string) error {
+	caps, err := core.ResolveCapabilities(ctx, s.provider)
+	if err != nil {
+		return err
+	}
+	if !caps.Has(core.CapArchive) {
+		if err := caps.Require(s.provider.Name(), core.CapDelete); err != nil {
+			return err
+		}
+	}
 	return s.provider.Delete(ctx, id)
 }
 
@@ -332,14 +351,12 @@ func (s *Service) stampTransition(cur *core.Task, p *core.Patch, target string, 
 	}
 }
 
-func (s *Service) checkCapabilities(p core.Patch) error {
-	caps := s.provider.Capabilities()
-	missing := func(c core.Capability, what string) error {
-		if !caps.Has(c) {
-			return fmt.Errorf("%w: provider %s cannot store %s", core.ErrUnsupported, s.provider.Name(), what)
-		}
-		return nil
+func (s *Service) checkCapabilities(ctx context.Context, p core.Patch) error {
+	caps, err := core.ResolveCapabilities(ctx, s.provider)
+	if err != nil {
+		return err
 	}
+	missing := func(c core.Capability, _ string) error { return caps.Require(s.provider.Name(), c) }
 	if len(p.AddDeps) > 0 || len(p.RemoveDeps) > 0 || p.ClearDeps {
 		if err := missing(core.CapDependencies, "dependencies"); err != nil {
 			return err
@@ -362,6 +379,21 @@ func (s *Service) checkCapabilities(p core.Patch) error {
 	}
 	if p.Claim != nil || p.ReleaseClaim {
 		if err := missing(core.CapClaims, "claims"); err != nil {
+			return err
+		}
+	}
+	if p.Class != nil {
+		if err := caps.Require(s.provider.Name(), core.CapClass); err != nil {
+			return err
+		}
+	}
+	if p.Due != nil || p.ClearDue {
+		if err := caps.Require(s.provider.Name(), core.CapDueDate); err != nil {
+			return err
+		}
+	}
+	if p.Started != nil || p.ClearStarted || p.Completed != nil || p.ClearCompleted {
+		if err := caps.Require(s.provider.Name(), core.CapWorkflowDates); err != nil {
 			return err
 		}
 	}
@@ -458,6 +490,13 @@ type PickOptions struct {
 func (s *Service) Pick(ctx context.Context, o PickOptions) (*core.Task, error) {
 	if strings.TrimSpace(o.Agent) == "" {
 		return nil, fmt.Errorf("%w: pick needs an agent name (--claim)", core.ErrInvalidInput)
+	}
+	caps, err := core.ResolveCapabilities(ctx, s.provider)
+	if err != nil {
+		return nil, err
+	}
+	if err := caps.Require(s.provider.Name(), core.CapClaims); err != nil {
+		return nil, err
 	}
 	filter := core.Filter{
 		Tags:       o.Tags,
@@ -570,4 +609,11 @@ func (s *Service) Handoff(ctx context.Context, id string, o HandoffOptions) (*co
 		return task, nil
 	}
 	return s.Update(ctx, id, core.Patch{}, EditOptions{Agent: o.Agent, Release: true})
+}
+
+func nonempty(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
 }

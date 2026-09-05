@@ -192,7 +192,8 @@ func (p *Provider) fetchSchema(ctx context.Context) (*schema, error) {
 // domain board description. The project, not the local file, decides which
 // columns exist.
 func boardFromSchema(name string, s *schema) *core.BoardInfo {
-	b := &core.BoardInfo{Name: name, Provider: ProviderName, URL: s.URL}
+	b := &core.BoardInfo{Name: name, Capabilities: &core.CapabilitySet{Supported: (&Provider{}).Capabilities(), Reasons: map[core.Capability]string{core.CapDelete: "GitHub issues are closed and archived; permanent deletion is not supported by this adapter"}},
+		Provider: ProviderName, URL: s.URL}
 	if f, ok := s.field(fieldStatus); ok {
 		for _, o := range f.Options {
 			b.Statuses = append(b.Statuses, core.Status{Name: o.Name})

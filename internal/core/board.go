@@ -34,6 +34,9 @@ type BoardInfo struct {
 	Priorities []string `json:"priorities,omitempty"`
 	Classes    []Class  `json:"classes,omitempty"`
 
+	// Capabilities is resolved with the live board, including backend refusal reasons.
+	Capabilities *CapabilitySet `json:"capabilities,omitempty"`
+
 	Metadata map[string]any `json:"metadata,omitempty"`
 }
 

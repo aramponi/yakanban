@@ -1,0 +1,30 @@
+{
+  "captured_at": "2026-09-04T22:33:26.121335+00:00",
+  "method": "GET",
+  "path": "users?username=aramponi",
+  "request": null,
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Fri, 04 Sep 2026 22:33:26 GMT",
+    "link": "<https://gitlab.com/api/v4/users?active=false&admins=false&auditors=false&blocked=false&exclude_active=false&exclude_external=false&exclude_humans=false&exclude_internal=false&external=false&humans=false&order_by=id&page=1&per_page=20&skip_ldap=false&sort=desc&username=aramponi&with_custom_attributes=false&without_project_bots=false&without_projects=false>; rel=\"first\", <https://gitlab.com/api/v4/users?active=false&admins=false&auditors=false&blocked=false&exclude_active=false&exclude_external=false&exclude_humans=false&exclude_internal=false&external=false&humans=false&order_by=id&page=1&per_page=20&skip_ldap=false&sort=desc&username=aramponi&with_custom_attributes=false&without_project_bots=false&without_projects=false>; rel=\"last\"",
+    "x-next-page": "",
+    "x-page": "1",
+    "x-per-page": "20",
+    "x-prev-page": "",
+    "x-total": "1",
+    "x-total-pages": "1"
+  },
+  "body": [
+    {
+      "id": 11676253,
+      "username": "aramponi",
+      "public_email": null,
+      "name": "Antoine Ramponi",
+      "state": "active",
+      "locked": false,
+      "avatar_url": "https://secure.gravatar.com/avatar/008a30ea478e2719514dda5549d7c6981e165c108dd2bf9859a6ec629a76edc9?s=80&d=identicon",
+      "web_url": "https://gitlab.com/aramponi"
+    }
+  ]
+}

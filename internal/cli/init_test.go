@@ -111,3 +111,19 @@ func TestBranchingModelDefaultsWhenNobodyCanAnswer(t *testing.T) {
 		t.Fatalf("model = %q, want the trunk-based default", got)
 	}
 }
+
+func TestParseRemoteForAnyForge(t *testing.T) {
+	for _, raw := range []string{"git@gitlab.example.com:team/subgroup/repo.git", "https://gitlab.example.com/team/subgroup/repo.git", "ssh://git@gitlab.example.com/team/subgroup/repo.git"} {
+		got := parseRemote(raw)
+		if got.host != "gitlab.example.com" || got.owner != "team/subgroup" || got.repo != "repo" {
+			t.Fatalf("%q: %+v", raw, got)
+		}
+	}
+	github := parseRemote("git@github.com:owner/repo.git")
+	if github.host != "github.com" || github.owner != "owner" || github.repo != "repo" {
+		t.Fatalf("GitHub regression: %+v", github)
+	}
+	if got := parseRemote("/tmp/local-repo"); got.repo != "" {
+		t.Fatalf("local path interpreted as a forge: %+v", got)
+	}
+}
