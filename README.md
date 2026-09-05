@@ -95,6 +95,46 @@ brew trust --cask aramponi/tap/yakanban
 brew install yakanban
 ```
 
+### Verify a release
+
+Signed releases include `checksums.txt.sig`, `checksums.txt.pem` and
+`provenance.sigstore.json`. Older releases may not have these files.
+With cosign 3 and the GitHub CLI installed, select a signed release tag and
+archive from the [release assets](https://github.com/aramponi/yakanban/releases),
+then verify before extracting or running it (Bash, macOS or Linux):
+
+```bash
+TAG=vX.Y.Z # replace with the release tag to verify
+ARCHIVE="yakanban_${TAG#v}_linux_amd64.tar.gz" # choose your platform
+mkdir -p "verify-$TAG"
+cd "verify-$TAG"
+gh release download "$TAG" --repo aramponi/yakanban \
+  --pattern "$ARCHIVE" --pattern 'checksums.txt*' --pattern provenance.sigstore.json
+cosign verify-blob checksums.txt \
+  --signature checksums.txt.sig \
+  --certificate checksums.txt.pem \
+  --certificate-identity "https://github.com/aramponi/yakanban/.github/workflows/release.yml@refs/tags/$TAG" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+# Check the chosen archive against the authenticated manifest.
+awk -v name="$ARCHIVE" '$2 == name { print; found=1 } END { if (!found) exit 1 }' \
+  checksums.txt > selected-checksum.txt && shasum -a 256 -c selected-checksum.txt
+gh attestation verify "$ARCHIVE" --repo aramponi/yakanban \
+  --bundle provenance.sigstore.json \
+  --signer-workflow aramponi/yakanban/.github/workflows/release.yml \
+  --source-ref "refs/tags/$TAG"
+```
+
+All three checks must succeed. The exact certificate identity binds the signature
+to the release workflow and selected tag; the signed checksum binds the archive
+to that manifest. The SLSA build attestation records the source commit and build
+workflow. This is supply-chain verification, not Authenticode signing or macOS
+Developer ID signing/notarization; OS trust warnings are unchanged.
+
+CI checks the release security configuration and builds a snapshot on pull
+requests. CI explicitly skips snapshot signing and does not prove OIDC works. Each real tag run
+also downloads and verifies the published signatures, checksums and provenance;
+that run must pass before treating a new release as verified.
+
 ### As a GitHub CLI extension
 
 The same binary answers to `gh yakanban ...` when it is installed under the
