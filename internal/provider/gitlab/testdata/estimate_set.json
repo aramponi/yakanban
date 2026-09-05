@@ -1,0 +1,19 @@
+{
+  "captured_at": "2026-09-04T22:23:50.732136+00:00",
+  "method": "POST",
+  "path": "projects/aramponi%2Fmysandbox/issues/1/time_estimate",
+  "request": {
+    "duration": "4h"
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Fri, 04 Sep 2026 22:23:50 GMT"
+  },
+  "body": {
+    "time_estimate": 14400,
+    "total_time_spent": 0,
+    "human_time_estimate": "4h",
+    "human_total_time_spent": null
+  }
+}

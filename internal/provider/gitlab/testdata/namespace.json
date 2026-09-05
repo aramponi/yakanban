@@ -1,0 +1,29 @@
+{
+  "captured_at": "2026-09-04T22:23:40.739424+00:00",
+  "method": "GET",
+  "path": "namespaces/aramponi",
+  "request": null,
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Fri, 04 Sep 2026 22:23:40 GMT"
+  },
+  "body": {
+    "id": 53636805,
+    "name": "Antoine Ramponi",
+    "path": "aramponi",
+    "kind": "user",
+    "full_path": "aramponi",
+    "parent_id": null,
+    "avatar_url": "https://secure.gravatar.com/avatar/008a30ea478e2719514dda5549d7c6981e165c108dd2bf9859a6ec629a76edc9?s=80&d=identicon",
+    "web_url": "https://gitlab.com/aramponi",
+    "billable_members_count": 1,
+    "seats_in_use": 1,
+    "max_seats_used": 0,
+    "max_seats_used_changed_at": null,
+    "end_date": null,
+    "plan": "free",
+    "trial_ends_on": null,
+    "trial": false
+  }
+}

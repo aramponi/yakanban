@@ -21,7 +21,8 @@ with the issue IID and conflicting labels: guessing a column hides ambiguity.
 Reject scoped/filtered boards and non-label lists until their membership
 semantics are implemented. Do not silently show the whole project instead.
 The [boards API](https://docs.gitlab.com/api/boards/) describes the lists and
-board scope; endpoint visibility and filtering still need live verification.
+board scope. The observed board has both endpoints visible and no filters;
+filtered/hidden boards are refused and covered by synthetic refusal tests.
 
 On Free, replace only the current board labels when moving an issue, retain
 unrelated labels, and read back the result. This is optimistic coordination,
@@ -44,27 +45,27 @@ adapter limitation, not a claim that no GitLab API could ever express it.
 | URL | `web_url` | same | Backend URL |
 | Created, Updated | `created_at`, `updated_at` | same | Read-only |
 | Tags | issue labels | same | Exclude labels used for status, priority and class; preserve unrelated labels on writes |
-| Assignees | native assignee | native assignees | Free multi-assignee restrictions must be probed; reject unsupported cardinality before writing |
+| Assignees | native assignee | native assignees | One assignee on Free/unknown; multiple on verified paid plans; cardinality refusal is documentation-derived |
 | Status | board label lists and issue state | same; scoped labels where present | Backend owns vocabulary; conflicting labels are an error |
-| Priority | `priority::VALUE` plain labels | same, with native scope exclusivity | Prefix is a convention on Free, not a lock |
+| Priority | `priority::VALUE` plain labels | same, with native scope exclusivity | GitLab label priority orders importance (0 is highest); unranked ties use label name; no Free lock |
 | Class | `class::VALUE` plain labels | same, with native scope exclusivity | Vocabulary from project/group labels; same race limit as priority |
 | Estimate | native `time_stats` and time-estimate endpoints | same | GitLab duration grammar, not an arbitrary string label |
-| Due | native `due_date` | same | Date only; explicit clearing must be verified |
+| Due | native `due_date` | same | Date only; empty-string clearing verified live |
 | Started | cannot | cannot in this REST mapping | Do not insert editable timestamps in description or fabricate from `updated_at` |
 | Completed | read native `closed_at`; cannot write an arbitrary date | same | Close/reopen controls native timestamp; it is not an independently writable workflow date |
 | Parent | cannot in this issue-only REST mapping | cannot in this mapping | Work-item hierarchy requires a separate design; epics are explicitly out of scope |
-| DependsOn | cannot preserve direction using `relates_to` | native `is_blocked_by` issue links | Same-project dependencies only; cross-project links remain metadata and must not become local IIDs |
+| DependsOn | cannot preserve direction using `relates_to` | native `is_blocked_by` issue links | Same-project dependencies only; cross-project blockers are refused rather than misread as local IIDs |
 | Blocked reason | cannot | cannot in this mapping | A label has no reason text; do not equate a dependency with a human blocking reason |
 | Claim (agent and expiry) | cannot | cannot | No native expiring claim selected; refuse agent workflows explicitly |
 | Metadata | issue ID, project ID, state, raw links/time data | same | Extra backend data, not new domain fields |
-| Delete/archive | native issue deletion, subject to permission; no issue archive selected | same | Advertise real delete only if validated; do not describe closing as archiving |
+| Delete/archive | native issue deletion, subject to permission; no issue archive selected | same | Permanent deletion requires active project and Maintainer/Owner permission; 204 then 404 verified |
 | Linked branch | cannot in this mapping | cannot in this mapping | Creating a ref is not the linked-branch contract; merge requests are out of scope |
 
 Native issue content, dates, assignment and time tracking are described by the
 [issues API](https://docs.gitlab.com/api/issues/). Dependency operations are
 specified by the [issue links API](https://docs.gitlab.com/api/issue_links/);
 [linked issue tiers](https://docs.gitlab.com/user/project/issues/related_issues/)
-must also be checked when capturing the Free refusal.
+explain the Free directional-link refusal captured during validation.
 
 ## Claims: refuse rather than hide a lock in user content
 
@@ -99,20 +100,44 @@ Use `GITLAB_TOKEN` first, otherwise the existing `glab` login for the configured
 host. Do not persist or print credentials. Use a provider `host` setting for
 self-managed GitLab, defaulting to `gitlab.com`, plus project namespace/path
 and board ID. Never send a host's credential to a different host on redirect.
-The exact token retrieval command and self-managed URL handling must be tested
-against the installed [GitLab CLI](https://docs.gitlab.com/cli/).
+The implementation reads `glab auth git-credential get` with the configured
+HTTPS host on stdin. It respects glab's keyring and credential expiry; an expired
+OAuth credential is refreshed by `glab auth status --hostname HOST` and read
+again. An actual expired token was observed during validation and glab renewed
+it successfully. Only glab stores its own refreshed credential. This was tested
+with glab 1.116.0. **Use Authorization: Bearer** for both
+OAuth and personal access tokens: PRIVATE-TOKEN with the actual OAuth token
+returned 401, while Bearer succeeded. Both glab lookup and `GITLAB_TOKEN` were
+verified with the real binary; credentials never enter the descriptor.
+See [REST authentication](https://docs.gitlab.com/api/rest/authentication/).
+Self-managed settings accept an HTTPS hostname with optional port; subpath
+installations are not supported. Host parsing/redirect refusal are tested
+locally, but no self-managed instance was available for live validation.
 
-## Planned API traffic (not measured)
+## API traffic
 
-| Operation | Expected uncached calls |
+The schema costs three requests (project, board including lists, namespace)
+plus one per label page (100/page). It is cached on disk with the entitlement
+result. A captured-response test checks the normal cold Board + Get total of
+five calls. The following adapter costs exclude that schema overhead:
+
+| Operation | API calls with schema available |
 |---|---|
-| Board | Project + board/lists + paginated labels + permitted entitlement lookup; exact count depends on response shape |
-| List | Board metadata + one issue-list GET per page; paid dependency mapping adds one links GET per issue/page |
-| Get | Board metadata + issue GET; links GET when supported |
-| Create | Issue POST, optional estimate POST, optional dependency POSTs, final readback |
-| Update/move | Read current issue, optional issue PUT, estimate/reset call, dependency link mutations, readback |
-| Delete | Issue DELETE if permission and semantics are verified |
-| Init | Lookup/adopt board, or create board and missing labels/lists; never rewrite adopted columns |
+| Board | Zero until cache expiry/refresh; otherwise three + label pages |
+| List | One issue GET per page; paid plans add link-page GETs for every issue |
+| Get | One issue GET; paid plans also fetch its link pages |
+| Create | One issue POST, optional close PUT, estimate POST, dependency operations and final Get; username lookups add one user-list GET per assignee/page |
+| Update/move | Two Gets (before and after), at most one issue PUT, optional estimate/reset POST and dependency operations; username lookups as above |
+| Dependency edits | Read link pages; one DELETE per removed blocker and one POST per new blocker; existing unrelated links stay untouched |
+| Delete | One permanent issue DELETE |
+| Init | Read board pages unless ID supplied; optionally POST board and label lists; look up labels per requested workflow value and POST missing ones; resolve schema before and after provisioning |
+
+The service also reads before editing (one extra Get) and moving (two extra
+Gets). This preserves the existing claim/vocabulary pipeline; it is not a
+transaction. Existing priority/class labels and adopted board lists are never
+rewritten by init. New priority labels receive native numeric ranks from the
+requested ordering. Unranked adopted labels sort by name, without a guessed
+meaning for labels such as P0/P1.
 
 Board and list reads use the existing decorator. Get and writes stay live.
 Multi-call operations are not transactions: identify an already-created issue
@@ -120,25 +145,24 @@ in a partial-failure error, and never blindly retry its POST.
 
 ## Port findings and generic changes required by #9
 
-The current `init` hardcodes GitHub owner/repository/project-number settings,
-and has no generic provider option input despite `BootstrapOptions.Options`.
-Self-managed GitLab provisioning cannot be registered as just an adapter today.
-The implementation will add generic `init --set key=value` provider settings.
-This is an explicit CLI port finding, not a GitLab-only switch.
+The existing `init` assumed GitHub owner/repository/project-number settings
+and github.com remotes. The implementation adds generic `init --set key=value`
+provider settings and remote parsing for HTTPS/SSH with nested namespaces.
+It also removes default claim requirements when the resolved backend cannot
+store claims. These are explicit CLI port findings, with no GitLab-specific
+condition in the CLI.
 
-The service stamps Started/Completed as writable fields on transitions, but
-GitLab's native closed timestamp is read-only and no Started mapping is chosen.
-The current capability vocabulary has no way to express this distinction.
-Ticket #8 adds a generic workflow-date capability: automatic stamps are only
-written when supported, and explicit date edits otherwise fail with a reason.
-GitLab reads `closed_at` after close/reopen and never silently drops explicit
-date edits.
+The service previously stamped Started/Completed unconditionally. Ticket #8
+adds the generic `CapWorkflowDates` capability: automatic stamps are only
+written when supported, while explicit unsupported date edits fail with a
+reason. GitLab reads `closed_at` after close/reopen. No fields were added to
+Task, Draft or Patch; GitLab-specific state stays in Metadata.
 
 ## Live evidence and remaining coverage
 
 Captured full responses and pagination headers are replayed by the adapter tests.
 The sandbox remains available for repeatable manual validation; tests never use
-its credentials or contact it. Evidence captured so far:
+its credentials or contact it. Evidence captured:
 
 - Board creation, label-list ordering, implicit Open/Closed endpoints.
 - Create/get/list/update/delete, including 204 deletion and subsequent 404.
@@ -150,11 +174,17 @@ its credentials or contact it. Evidence captured so far:
 - Due-date clearing with an empty string, assignee clearing with an empty array.
 - Close/reopen returned and then cleared native closed_at.
 - Issue-list pagination returned X-Next-Page; page two contained the other issue.
+- Native priority label ranks were updated and read back on Free.
 - Namespace plan discovery succeeded for the authorized Owner account.
-- glab config get token --host gitlab.com returned the existing login token
-  without persisting a yakanban credential.
+- The glab credential helper returned the existing keyring login and expiry;
+  glab auth status renewed an expired OAuth token without a new user login.
+
+The actual yakanban binary also passed init/adoption, config, create, show,
+list, board, edit/append, move/close/reopen, estimate/due/assignee clearing,
+unsupported dependency/claim/workflow-date requests, and permanent deletion
+followed by not-found. The smoke issue was removed after validation.
 
 Remaining live coverage: paid dependency writes, paid scope exclusivity,
 self-managed authentication, non-Owner plan visibility, and multi-assignee
 license behavior. These must not be described as live-verified. The adapter
-will refuse unavailable or unknown capabilities with the precise known cause.
+refuses unavailable or unknown capabilities with the precise known cause.

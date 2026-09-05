@@ -1,0 +1,17 @@
+{
+  "captured_at": "2026-09-04T22:23:56.636426+00:00",
+  "method": "POST",
+  "path": "projects/aramponi%2Fmysandbox/issues/1/reset_time_estimate",
+  "request": null,
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Fri, 04 Sep 2026 22:23:56 GMT"
+  },
+  "body": {
+    "time_estimate": 0,
+    "total_time_spent": 0,
+    "human_time_estimate": null,
+    "human_total_time_spent": null
+  }
+}

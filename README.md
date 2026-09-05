@@ -4,7 +4,7 @@
 A Kanban CLI for teams where humans and AI agents share the same board.
 
 Agents and developers drive tickets from the terminal. Everyone else keeps
-using the native web UI of the tracker — GitHub Projects today, Jira, Plane or
+using the native web UI of the tracker — GitHub Projects and GitLab issue boards today, Jira, Plane or
 Linear later. yakanban never becomes the source of truth: the backend does.
 
 ```console
@@ -112,7 +112,7 @@ Shipping one would have been dead weight in every release.
 
 ## Authentication
 
-yakanban stores no credentials. It uses, in order:
+yakanban stores no credentials. For GitHub it uses, in order:
 
 1. `$YAKANBAN_GITHUB_TOKEN`, `$GH_TOKEN` or `$GITHUB_TOKEN`
 2. `gh auth token` — the GitHub CLI login you already have
@@ -123,6 +123,11 @@ before ever touching projects, add it once:
 ```bash
 gh auth refresh -s project
 ```
+
+For GitLab, it uses `$GITLAB_TOKEN`, then the existing host-specific `glab`
+login (`glab auth login --hostname gitlab.com`). The HTTP client uses Bearer
+authentication for both access tokens and OAuth logins. Self-managed hosts are
+configured with `--set host=gitlab.example.com` during initialization.
 
 ## Quick start
 
@@ -140,6 +145,28 @@ yakanban move 42 done
 
 `init` writes a committed `.yakanban.yml` next to your code and adds
 `.yakanban/` (the read cache) to `.gitignore`.
+
+### GitLab
+
+```bash
+# Inside a GitLab checkout, detect the host and nested namespace from origin:
+yakanban init --provider gitlab --branching trunk-based
+
+# Or select the project and optionally an existing board explicitly:
+yakanban init --provider gitlab --set project=group/subgroup/repo \
+  --set board_id=123 --branching trunk-based
+
+yakanban config                     # resolved capabilities and refusal reasons
+yakanban create "Fix the login redirect" --priority high
+yakanban move 42 Closed
+```
+
+GitLab owns the columns: Open, the board's ordered label lists, and Closed.
+Free supports ordinary ticket workflows; directional dependencies require
+Premium/Ultimate and visible entitlement. Claims, blocked-reason storage,
+parent hierarchy and linked branches are explicitly unsupported in this
+adapter. GitLab `delete --yes` permanently deletes an issue and requires
+Maintainer/Owner access. See [the mapping and validation limits](docs/gitlab-mapping.md).
 
 ## Commands
 
@@ -433,7 +460,7 @@ Two agents need a word of explanation:
 
 ## Other backends
 
-The domain and the CLI know nothing about GitHub. A backend is one package
+GitHub and GitLab are registered adapters. A backend is one package
 implementing `core.Provider` plus one line in the registry — see
 [docs/architecture.md](docs/architecture.md#adding-a-provider). Jira, Plane and
 Linear are the intended next ones.

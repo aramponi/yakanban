@@ -1,0 +1,104 @@
+{
+  "captured_at": "2026-09-04T22:23:51.252914+00:00",
+  "method": "GET",
+  "path": "projects/aramponi%2Fmysandbox/issues/1",
+  "request": null,
+  "status": 200,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Fri, 04 Sep 2026 22:23:51 GMT"
+  },
+  "body": {
+    "id": 201525167,
+    "iid": 1,
+    "project_id": 86114941,
+    "title": "yakanban live mapping fixture",
+    "description": "User text stays intact.",
+    "state": "opened",
+    "created_at": "2026-09-04T22:23:48.843Z",
+    "updated_at": "2026-09-04T22:23:50.594Z",
+    "closed_at": null,
+    "closed_by": null,
+    "labels": [
+      "Doing",
+      "class::standard",
+      "priority::medium",
+      "unrelated"
+    ],
+    "milestone": null,
+    "assignees": [
+      {
+        "id": 11676253,
+        "username": "aramponi",
+        "public_email": null,
+        "name": "Antoine Ramponi",
+        "state": "active",
+        "locked": false,
+        "avatar_url": "https://secure.gravatar.com/avatar/008a30ea478e2719514dda5549d7c6981e165c108dd2bf9859a6ec629a76edc9?s=80&d=identicon",
+        "web_url": "https://gitlab.com/aramponi"
+      }
+    ],
+    "author": {
+      "id": 11676253,
+      "username": "aramponi",
+      "public_email": null,
+      "name": "Antoine Ramponi",
+      "state": "active",
+      "locked": false,
+      "avatar_url": "https://secure.gravatar.com/avatar/008a30ea478e2719514dda5549d7c6981e165c108dd2bf9859a6ec629a76edc9?s=80&d=identicon",
+      "web_url": "https://gitlab.com/aramponi"
+    },
+    "type": "ISSUE",
+    "assignee": {
+      "id": 11676253,
+      "username": "aramponi",
+      "public_email": null,
+      "name": "Antoine Ramponi",
+      "state": "active",
+      "locked": false,
+      "avatar_url": "https://secure.gravatar.com/avatar/008a30ea478e2719514dda5549d7c6981e165c108dd2bf9859a6ec629a76edc9?s=80&d=identicon",
+      "web_url": "https://gitlab.com/aramponi"
+    },
+    "user_notes_count": 0,
+    "merge_requests_count": 0,
+    "upvotes": 0,
+    "downvotes": 0,
+    "start_date": null,
+    "due_date": "2026-10-01",
+    "confidential": false,
+    "discussion_locked": null,
+    "issue_type": "issue",
+    "web_url": "https://gitlab.com/aramponi/mysandbox/-/work_items/1",
+    "time_stats": {
+      "time_estimate": 14400,
+      "total_time_spent": 0,
+      "human_time_estimate": "4h",
+      "human_total_time_spent": null
+    },
+    "task_completion_status": {
+      "count": 0,
+      "completed_count": 0
+    },
+    "blocking_issues_count": 0,
+    "has_tasks": true,
+    "task_status": "0 of 0 checklist items completed",
+    "_links": {
+      "self": "https://gitlab.com/api/v4/projects/86114941/issues/1",
+      "notes": "https://gitlab.com/api/v4/projects/86114941/issues/1/notes",
+      "award_emoji": "https://gitlab.com/api/v4/projects/86114941/issues/1/award_emoji",
+      "project": "https://gitlab.com/api/v4/projects/86114941",
+      "closed_as_duplicate_of": null
+    },
+    "references": {
+      "short": "#1",
+      "relative": "#1",
+      "full": "aramponi/mysandbox#1"
+    },
+    "severity": "UNKNOWN",
+    "subscribed": true,
+    "moved_to_id": null,
+    "imported": false,
+    "imported_from": "none",
+    "service_desk_reply_to": null
+  }
+}

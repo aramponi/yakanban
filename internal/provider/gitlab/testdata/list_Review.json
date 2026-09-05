@@ -1,0 +1,26 @@
+{
+  "captured_at": "2026-09-04T22:23:47.107975+00:00",
+  "method": "POST",
+  "path": "projects/aramponi%2Fmysandbox/boards/11585676/lists",
+  "request": {
+    "label_id": 53388807
+  },
+  "status": 201,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Fri, 04 Sep 2026 22:23:47 GMT"
+  },
+  "body": {
+    "id": 25678471,
+    "label": {
+      "id": 53388807,
+      "name": "Review",
+      "description": null,
+      "text_color": "#FFFFFF",
+      "description_html": "",
+      "color": "#428BCA",
+      "archived": false
+    },
+    "position": 1
+  }
+}
