@@ -211,6 +211,7 @@ Maintainer/Owner access. See [the mapping and validation limits](docs/gitlab-map
 ## Commands
 
 <!-- site:table id="commands" -->
+
 | Command | What it does |
 |---|---|
 | `init` | Provision the board and write the descriptor |
@@ -268,6 +269,7 @@ unexpired claim; `--force` overrides it. A plain human edit is never blocked.
 ### Exit codes
 
 <!-- site:table id="exit-codes" -->
+
 | Code | Meaning |
 |---|---|
 | 0 | success |
