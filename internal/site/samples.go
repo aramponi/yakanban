@@ -40,7 +40,11 @@ type Sample struct {
 var Samples = []Sample{
 	{Name: "board", Args: []string{"board", "--refresh"}, NeedsBoard: true},
 	{Name: "ready", Args: []string{"list", "--unclaimed", "--not-blocked", "--status", "todo"}, NeedsBoard: true},
-	{Name: "compact", Args: []string{"list", "--compact", "--status", "todo"}, NeedsBoard: true},
+	// No status filter: this capture shows the --compact format, not todo
+	// work, and `list --compact` prints nothing when the filter matches no
+	// rows. A status the backlog can legitimately empty out would make the
+	// site build depend on transient board state.
+	{Name: "compact", Args: []string{"list", "--compact", "-n", "8"}, NeedsBoard: true},
 	{
 		Name: "auth",
 		Args: []string{"board", "--refresh"},
