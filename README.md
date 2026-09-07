@@ -208,6 +208,58 @@ parent hierarchy and linked branches are explicitly unsupported in this
 adapter. GitLab `delete --yes` permanently deletes an issue and requires
 Maintainer/Owner access. See [the mapping and validation limits](docs/gitlab-mapping.md).
 
+### Adopting a project that already exists
+
+Nothing above assumes a fresh repository. `init` provisions a board and writes a
+descriptor; it never touches your code, your issues or your history.
+
+```bash
+gh auth refresh -s project          # once, if you authenticated before Projects v2
+yakanban init --branching github-flow
+```
+
+`owner` and `repo` come from `origin`, so this is the whole of it: a Project v2
+is created, linked to the repository and given the default columns.
+
+If the team already has a board, adopt it instead of adding a second one:
+
+```bash
+yakanban init --project 7
+```
+
+The project is taken as it is. **Its `Status` columns are never rewritten** —
+yakanban only creates the custom fields it is missing (Priority, Class, Claim,
+Blocked, Depends On…), and deletes nothing. `init` then writes the columns it
+found into `.yakanban.yml`, so the descriptor describes your board rather than
+the default one.
+
+Issues you already have are **not** bulk-imported, and nothing is migrated
+behind your back. An issue that is not on the board is still readable, and the
+first write puts it there:
+
+```bash
+yakanban show 42                    # works; the task is simply not on the board yet
+yakanban move 42 todo               # adds it to the project, then sets the column
+```
+
+So a long-lived repository joins the board one ticket at a time, as work
+actually reaches it. To bring everything over in one go, select the issues in
+the GitHub project's own UI and add them there — yakanban reads the result on
+the next command.
+
+The same shape works for GitLab, where `board_id` is the existing board:
+
+```bash
+yakanban init --provider gitlab --set project=group/subgroup/repo \
+  --set board_id=123 --branching trunk-based
+```
+
+Two things to know afterwards. Columns belong to the tracker: add or rename one
+in the UI and yakanban follows, as [Changing the columns](#changing-the-columns)
+describes. And `init --force` re-provisions the backend from the defaults — it
+is how you re-apply a descriptor you have edited, never how you pick up a new
+column.
+
 ## Commands
 
 <!-- site:table id="commands" -->

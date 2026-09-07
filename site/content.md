@@ -45,6 +45,22 @@ gh auth refresh -s project
 Both cases — no credential at all, or a credential without the scope — exit 4,
 and in both the message is the instruction:
 
+## It adopts the board you already have
+
+Most projects that need a board have one. So setup adopts rather than
+provisions: point yakanban at the project the team is already using and it
+takes the columns as it finds them, adding only the fields it needs to store a
+priority, a claim and a dependency. Nothing is renamed, nothing is deleted, and
+the product owner's view does not change under them.
+
+Old issues are left alone too. An issue that was never put on the board is
+still readable, and the first write is what puts it there — so a repository
+with years of history joins one ticket at a time, as work actually reaches it,
+instead of arriving as a migration nobody asked for.
+
+The greenfield case is the same command with nothing to adopt: it creates the
+project, links it to the repository and gives it the default columns.
+
 ## Two kinds of user, one board
 
 A developer and an agent work in a terminal. A product owner works in a
