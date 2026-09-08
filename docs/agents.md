@@ -77,3 +77,17 @@ priorities — never hardcode them. Use `--compact` for every listing. Take work
 with `yakanban move ID <column> --claim $AGENT`, where `$AGENT` comes from a
 single `yakanban agent-name` call at the start of the session.
 ```
+
+## Installing the skills
+
+`yakanban skill install` writes the two bundled skills into whichever agents it
+detects. Two of them need a word of explanation:
+
+- **Hermes** is the exception to "installed means active": it does not load
+  project skills until `hermes skills trust` runs, so `install` and `check`
+  say so rather than reporting a file nothing will read.
+- **Antigravity** is an IDE, so there is no executable to detect it by, and it
+  reads the same `.agents/skills` directory as Codex. Selecting both writes
+  that file once, not twice. Its user-level skills live under
+  `~/.gemini/config/skills`, inside Gemini CLI's directory, so each is
+  detected by its own path rather than by the root they share.
