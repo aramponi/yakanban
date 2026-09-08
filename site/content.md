@@ -16,36 +16,15 @@ so there is no second copy of anything that can quietly stop being true.
 
 sample: board
 
-Yet another Kanban. The name is accurate and the joke is over; what follows is
-the part that is not funny.
+Your coding agent just finished a task. Nobody else knows: no ticket moved, no
+claim taken, and the agent in your other terminal is about to start the same
+bug.
 
-## It borrows the login you already have
+Give them the board your team already has. The one below is this project's own,
+captured when this page was built: yakanban is built with yakanban, and its
+board is [public](https://github.com/users/aramponi/projects/2).
 
-sample: auth
-
-yakanban stores no credentials. It reads `$YAKANBAN_GITHUB_TOKEN`, `$GH_TOKEN`
-or `$GITHUB_TOKEN`, and when none of them is set it asks the
-[GitHub CLI](https://cli.github.com) for the token you are already using:
-`gh auth token`. So `gh` is a prerequisite for the ordinary path, and the
-error says so rather than failing somewhere deeper.
-
-That is the whole authentication story, and it is deliberately not ours. There
-is no login command, no keychain entry and no token file to leak, because the
-credential belongs to a tool that already manages it — and in CI, where `gh`
-is not the natural answer, one environment variable takes over.
-
-One thing will catch you once. Projects v2 sits behind its own OAuth scope, so
-an account that authenticated with `gh` before ever touching projects needs it
-added:
-
-```bash
-gh auth refresh -s project
-```
-
-Both cases — no credential at all, or a credential without the scope — exit 4,
-and in both the message is the instruction:
-
-## It adopts the board you already have
+## What changes for your team: nothing
 
 Most projects that need a board have one. So setup adopts rather than
 provisions: point yakanban at the project the team is already using and it
@@ -54,8 +33,8 @@ priority, a claim and a dependency. Nothing is renamed, nothing is deleted, and
 the product owner's view does not change under them.
 
 Old issues are left alone too. An issue that was never put on the board is
-still readable, and the first write is what puts it there — so a repository
-with years of history joins one ticket at a time, as work actually reaches it,
+still readable, and the first write is what puts it there, so a repository with
+years of history joins one ticket at a time, as work actually reaches it,
 instead of arriving as a migration nobody asked for.
 
 The greenfield case is the same command with nothing to adopt: it creates the
@@ -64,8 +43,8 @@ project, links it to the repository and gives it the default columns.
 ## Two kinds of user, one board
 
 A developer and an agent work in a terminal. A product owner works in a
-browser, on the GitHub project board they were already using. Neither of them
-is looking at a copy.
+browser, on the project board they were already using. Neither of them is
+looking at a copy, and nobody had to install anything to see the other's work.
 
 yakanban is a client, not a store. Every write goes straight to the tracker;
 reads pass through a one-minute cache so an agent can poll a board without
@@ -80,8 +59,8 @@ no board. Offline was traded for never being wrong about who owns what.
 sample: ready
 
 Two agents pointed at the same backlog will pick the same ticket. A claim is a
-soft lock — an agent name and an expiry, written into two ordinary project
-fields — so the second agent is refused and goes to find other work.
+soft lock, an agent name and an expiry written into two ordinary project
+fields, so the second agent is refused and goes to find other work.
 
 Ordinary fields, because a human has to be able to see them. Open the project
 in the browser and the claim is a column like any other: who holds what, and
@@ -96,6 +75,21 @@ a progress note.
 returning it. That read is the reason several agents on one board is safe:
 list-then-claim checks nothing, because the answer is stale by the time it
 arrives.
+
+## The instructions ship with the binary
+
+The hard part of handing a board to an agent is not the API, it is telling it
+when to claim, when to park a task and when to stop and ask. Two skill files
+carry that, and they are compiled into the binary, so a downloaded release
+installs them with no checkout. An agent that reads them drives a ticket the
+same way as every other agent on the repository, which is the difference
+between a board and a log of what one assistant felt like doing.
+
+`skill install` detects Claude Code, Codex, Cursor, Gemini CLI, Antigravity,
+Hermes, Pi and OpenClaw, shows you what it found and lets you change its mind
+before it writes anything. A file you have edited since is never overwritten
+without `--force`: each one carries a hash of the text yakanban wrote, so
+"stale" and "you changed this" are different answers.
 
 ## One shape for every command
 
@@ -118,18 +112,31 @@ The exit codes are the part a script actually reads. Code 5 in particular is
 not an error: it means another agent got there first, and the correct response
 is to pick something else.
 
-## The instructions ship with the binary
+## It borrows the login you already have
 
-The hard part of handing a board to an agent is not the API, it is telling it
-when to claim, when to park a task and when to stop and ask. Two skill files
-carry that, and they are compiled into the binary, so a downloaded release
-installs them with no checkout.
+sample: auth
 
-`skill install` detects Claude Code, Codex, Cursor, Gemini CLI, Antigravity,
-Hermes, Pi and OpenClaw, shows you what it found and lets you change its mind
-before it writes anything. A file you have edited since is never overwritten
-without `--force`: each one carries a hash of the text yakanban wrote, so
-"stale" and "you changed this" are different answers.
+yakanban stores no credentials. It reads `$YAKANBAN_GITHUB_TOKEN`, `$GH_TOKEN`
+or `$GITHUB_TOKEN`, and when none of them is set it asks the
+[GitHub CLI](https://cli.github.com) for the token you are already using:
+`gh auth token`. So `gh` is a prerequisite for the ordinary path, and the
+error says so rather than failing somewhere deeper.
+
+That is the whole authentication story, and it is deliberately not ours. There
+is no login command, no keychain entry and no token file to leak, because the
+credential belongs to a tool that already manages it, and in CI, where `gh`
+is not the natural answer, one environment variable takes over.
+
+One thing will catch you once. Projects v2 sits behind its own OAuth scope, so
+an account that authenticated with `gh` before ever touching projects needs it
+added:
+
+```bash
+gh auth refresh -s project
+```
+
+Both cases, no credential at all or a credential without the scope, exit 4,
+and in both the message is the instruction:
 
 ## What we didn't build
 
