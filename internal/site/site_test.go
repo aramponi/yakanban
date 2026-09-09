@@ -309,3 +309,22 @@ func TestParseReadmeRejectsAStrandedMarker(t *testing.T) {
 		t.Error("a table marker with no table under it must fail generation")
 	}
 }
+
+// TestNoRootAbsoluteLinks guards the class of bug that made every llms.txt
+// link a 404. The site is published as a GitHub Pages *project* page, so it is
+// served under /yakanban/ and a root-absolute href resolves against
+// aramponi.github.io instead — the user root, where nothing of ours is served.
+// Relative links are correct at any depth, and Pages redirects the bare
+// /yakanban to /yakanban/ so they resolve there too.
+func TestNoRootAbsoluteLinks(t *testing.T) {
+	page, _ := buildFromRepo(t)
+	html, err := page.RenderHTML()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A leading "//" is protocol-relative and points at another host, which is
+	// somebody else's problem, not a subpath mistake.
+	for _, m := range regexp.MustCompile(`(?:href|src)="(/[^/"][^"]*)"`).FindAllStringSubmatch(html, -1) {
+		t.Errorf("root-absolute link %q leaves the site: it resolves against the domain root, not the project subpath", m[1])
+	}
+}

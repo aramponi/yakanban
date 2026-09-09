@@ -9,7 +9,7 @@
 <meta property="og:description" content="{{ .Blurb }}">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%23a8451a'/><rect x='3' y='3.5' width='3' height='9' rx='1' fill='white'/><rect x='7.5' y='3.5' width='3' height='6' rx='1' fill='white' opacity='.75'/><rect x='12' y='3.5' width='1.5' height='3.5' rx='.75' fill='white' opacity='.5'/></svg>">
-<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
+<link rel="alternate" type="text/plain" href="llms.txt" title="llms.txt">
 <style>{{ .CSS }}
 {{- range $i, $m := .Installs }}
 #install-{{ $i }}:checked ~ .tablist label[for="install-{{ $i }}"] { color: var(--ink); background: var(--accent-soft); border-color: var(--accent); }
@@ -22,7 +22,7 @@
 <header class="masthead wrap">
   <span class="name">{{ .Title }}</span>
   <nav>
-    <a href="/llms.txt">llms.txt</a>
+    <a href="llms.txt">llms.txt</a>
     <a href="{{ .Repo }}">Source</a>
     <a href="{{ .Repo }}/releases">Releases</a>
     <button id="theme" type="button" aria-label="Switch between light and dark">Theme</button>
@@ -81,7 +81,7 @@
       <a href="{{ .Repo }}">Source</a>
       <a href="{{ .Repo }}/releases">Releases</a>
       <a href="{{ .Repo }}/blob/main/README.md">README</a>
-      <a href="/llms.txt">llms.txt</a>
+      <a href="llms.txt">llms.txt</a>
       <a href="{{ .Repo }}/blob/main/LICENSE">MIT licence</a>
     </div>
     <p class="built">Generated from {{ .Title }} {{ .Version }} on {{ .Built }}. This page has no facts of its own: it is built from README.md and from the binary's own output.</p>

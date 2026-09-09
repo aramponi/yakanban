@@ -192,7 +192,7 @@ shape of the second one is not knowable from the first.
 
 ## For agents
 
-The site serves an [llms.txt](/llms.txt) at its root: the command reference,
+The site serves an [llms.txt](llms.txt) at its root: the command reference,
 the exit codes, the two skill files and the backend mapping, as links an agent
 can follow instead of a page it has to scrape.
 
