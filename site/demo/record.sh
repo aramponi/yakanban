@@ -111,6 +111,17 @@ for i in "${!PROMPTS[@]}"; do
     --allowedTools "${ALLOWED[@]}" \
     --max-budget-usd "$BUDGET_USD" \
     | stamp >> "$OUT/session.tsv"
+  # A prompt that ends in an error (expired login, spent budget) would leave
+  # the next prompt talking to a session that never did the previous step.
+  if ! tail -n 1 "$OUT/session.tsv" | cut -f2- | python3 -c '
+import json, sys
+e = json.load(sys.stdin)
+if e.get("type") != "result" or e.get("is_error"):
+    sys.exit("session failed: %s" % (e.get("result") or e.get("subtype")))
+'; then
+    say "stopping: prompt $((i + 1)) did not complete; the take is incomplete"
+    exit 1
+  fi
 done
 
 # One last sample after the session, so the final board is always captured.
