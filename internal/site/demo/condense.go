@@ -67,6 +67,7 @@ var readMS = map[string]int64{
 	"activity": 380,
 	"status":   450,
 	"move":     650,
+	"archive":  550,
 }
 
 const (
@@ -173,8 +174,9 @@ type pendingTool struct {
 }
 
 type agentState struct {
-	task string
-	done bool
+	task     string
+	done     bool
+	activity string // the last one shown, so a repeat is not shown twice
 }
 
 type condenser struct {
@@ -379,7 +381,8 @@ func (c *condenser) handleTask(at int64, e streamEvent) {
 		if !ok {
 			return
 		}
-		if act := activity(e.Description); act != "" {
+		if act := activity(e.Description); act != "" && act != c.agents[key].activity {
+			c.agents[key].activity = act
 			c.emit(at, Event{Type: "agent", ID: key, Activity: act})
 		}
 	case "task_notification":
@@ -388,6 +391,7 @@ func (c *condenser) handleTask(at int64, e streamEvent) {
 			return
 		}
 		c.agents[key].done = true
+		c.agents[key].activity = ""
 		c.emit(at, Event{Type: "agent", ID: key, Status: "done"})
 	}
 }
@@ -470,6 +474,16 @@ func (c *condenser) applyYakanban(at int64, p *pendingTool, out string) error {
 			mv.Agent = p.agent
 		}
 		c.emit(at, mv)
+
+	case "delete":
+		// Closes and archives: the ticket leaves the board.
+		for _, a := range positional(args[2:]) {
+			id := strings.TrimPrefix(a, "#")
+			if _, ok := c.cards[id]; ok {
+				delete(c.cards, id)
+				c.emit(at, Event{Type: "archive", ID: id})
+			}
+		}
 	}
 	return nil
 }
@@ -510,11 +524,19 @@ func (c *condenser) step(from string, d int) string {
 func (c *condenser) checkFinalBoard() error {
 	last := c.take.Board[len(c.take.Board)-1]
 	var bad []string
+	onBoard := map[string]bool{}
 	for _, t := range last.Tasks {
+		onBoard[t.ID] = true
 		if got, ok := c.cards[t.ID]; ok && got != t.Status {
 			bad = append(bad, fmt.Sprintf("#%s replays to %s, the board says %s", t.ID, got, t.Status))
 		}
 	}
+	for id, col := range c.cards {
+		if !onBoard[id] {
+			bad = append(bad, fmt.Sprintf("#%s replays to %s, but it is no longer on the board", id, col))
+		}
+	}
+	sort.Strings(bad)
 	if len(bad) > 0 {
 		return fmt.Errorf("the replay does not end where the board did: %s", strings.Join(bad, "; "))
 	}
@@ -523,10 +545,32 @@ func (c *condenser) checkFinalBoard() error {
 
 // ---------- what the terminal shows ----------
 
-var shownRe = regexp.MustCompile(`^(yakanban (init|create|move|board|pick)\b|make test\b|go test\b|git (merge|push)\b)`)
+var shownRe = regexp.MustCompile(`^(yakanban (init|create|move|delete|board|pick)\b|make test\b|go test\b|git (merge|push)\b)`)
 
 func showCommand(cmd string) bool {
-	return shownRe.MatchString(cmd) && !strings.Contains(cmd, "--help")
+	return shownRe.MatchString(cmd) && !strings.Contains(cmd, "--help") && !compound(cmd)
+}
+
+// compound reports a command line that runs more than one command: its
+// output is theirs together, which the clip cannot attribute to one command.
+// A pipe is fine; it filters one command's output.
+func compound(cmd string) bool {
+	var quote rune
+	prev := rune(0)
+	for _, r := range cmd {
+		switch {
+		case quote != 0:
+			if r == quote {
+				quote = 0
+			}
+		case r == '"' || r == '\'':
+			quote = r
+		case r == ';' || r == '\n' || (r == '&' && prev == '&'):
+			return true
+		}
+		prev = r
+	}
+	return false
 }
 
 // firstCommand keeps the first command of a line: what comes after a pipe or
@@ -626,6 +670,9 @@ func firstSentence(s string) string {
 			s = s[:i+1]
 			break
 		}
+	}
+	if strings.HasSuffix(s, ":") {
+		s = strings.TrimSuffix(s, ":") + "."
 	}
 	return truncate(s, 110)
 }

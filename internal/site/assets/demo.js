@@ -21,6 +21,7 @@
 //   board   {name, columns: [names]}    the board appears
 //   card    {id, title, column, priority}
 //   move    {id, column, agent?}        a card changes column; agent claims it
+//   archive {id}                        a card is closed and leaves the board
 //   agent   {id, task, label, model, effort}   a sub-agent starts
 //   agent   {id, activity}                     what it is doing now
 //   agent   {id, status: "done"|"running", note?}   it stops, or is resumed
@@ -319,6 +320,17 @@
         }
         c.node.classList.toggle('is-done', to.last);
         this.flip(function () { to.cards.appendChild(c.node); }, animate);
+        break;
+
+      case 'archive':
+        c = this.cards[e.id];
+        delete this.cards[e.id];
+        var gone = function () { self.flip(function () { c.node.remove(); }, animate); };
+        if (!animate) { gone(); break; }
+        c.node.animate([
+          { opacity: 1, transform: 'none' },
+          { opacity: 0, transform: 'scale(.94)' }
+        ], { duration: 320, easing: 'ease-in', fill: 'forwards' }).onfinish = gone;
         break;
     }
   };

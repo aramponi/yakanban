@@ -1,0 +1,450 @@
+{
+ "recorded": "2026-09-29",
+ "version": "v1.0.0",
+ "real": 405902,
+ "duration": 61755,
+ "title": "claude — acme-api",
+ "events": [
+  {
+   "t": 300,
+   "type": "prompt",
+   "text": "Set up a yakanban board for this repo."
+  },
+  {
+   "t": 2749,
+   "type": "tool",
+   "cmd": "yakanban init --branching github-flow",
+   "out": [
+    "board ready: acme-api",
+    "project https://github.com/users/aramponi/projects/10"
+   ]
+  },
+  {
+   "t": 3749,
+   "type": "board",
+   "name": "acme-api",
+   "columns": [
+    "Backlog",
+    "Todo",
+    "In Progress",
+    "Review",
+    "Done"
+   ]
+  },
+  {
+   "t": 4933,
+   "type": "say",
+   "text": "The board is set up."
+  },
+  {
+   "t": 7138,
+   "type": "prompt",
+   "text": "File a ticket for each problem you find: failing tests, the README, the TODOs."
+  },
+  {
+   "t": 10502,
+   "type": "tool",
+   "cmd": "go test ./...",
+   "out": [
+    "--- FAIL: TestExpiredSessionIs401 (0.00s)",
+    "FAIL",
+    "FAIL  internal/auth",
+    "ok    internal/cache"
+   ]
+  },
+  {
+   "t": 11779,
+   "type": "tool",
+   "cmd": "yakanban create \"Expired session returns 500 instead of 401\" --priority high --tags bug,auth",
+   "out": [
+    "#5 Expired session returns 500 instead of 401",
+    "Status    Todo"
+   ]
+  },
+  {
+   "t": 12779,
+   "type": "card",
+   "id": "5",
+   "title": "Expired session returns 500 instead of 401",
+   "column": "Todo",
+   "priority": "high"
+  },
+  {
+   "t": 13385,
+   "type": "tool",
+   "cmd": "yakanban create \"Data race in cache.Invalidate\" --priority high --tags bug,cache,concurrency",
+   "out": [
+    "#6 Data race in cache.Invalidate",
+    "Status    Todo"
+   ]
+  },
+  {
+   "t": 14385,
+   "type": "card",
+   "id": "6",
+   "title": "Data race in cache.Invalidate",
+   "column": "Todo",
+   "priority": "high"
+  },
+  {
+   "t": 14855,
+   "type": "tool",
+   "cmd": "yakanban create \"README: install command typo (go instal)\" --priority low --tags docs",
+   "out": [
+    "#7 README: install command typo (go instal)",
+    "Status    Todo"
+   ]
+  },
+  {
+   "t": 15855,
+   "type": "card",
+   "id": "7",
+   "title": "README: install command typo (go instal)",
+   "column": "Todo",
+   "priority": "low"
+  },
+  {
+   "t": 16340,
+   "type": "tool",
+   "cmd": "yakanban create \"Refactor config.Load into one function per storage provider\" --priority low --class intangible --tags refactor,config",
+   "out": [
+    "#8 Refactor config.Load into one function per storage provider",
+    "Status    Backlog"
+   ]
+  },
+  {
+   "t": 17340,
+   "type": "card",
+   "id": "8",
+   "title": "Refactor config.Load into one function per storage provider",
+   "column": "Backlog",
+   "priority": "low"
+  },
+  {
+   "t": 18690,
+   "type": "say",
+   "text": "I filed 4 tickets, one for each problem I found."
+  },
+  {
+   "t": 20895,
+   "type": "prompt",
+   "text": "Work the board with sub-agents in parallel. Pick the model and the effort for each one to fit its ticket. Then review, commit, push and close them."
+  },
+  {
+   "t": 26737,
+   "type": "agent",
+   "id": "a1",
+   "task": "5",
+   "label": "Fix expired session 401",
+   "model": "sonnet",
+   "effort": "medium"
+  },
+  {
+   "t": 27498,
+   "type": "move",
+   "id": "5",
+   "column": "In Progress",
+   "agent": "a1"
+  },
+  {
+   "t": 28149,
+   "type": "agent",
+   "id": "a2",
+   "task": "6",
+   "label": "Fix cache data race",
+   "model": "opus",
+   "effort": "high"
+  },
+  {
+   "t": 28889,
+   "type": "agent",
+   "id": "a3",
+   "task": "7",
+   "label": "Fix README typo",
+   "model": "haiku",
+   "effort": "low"
+  },
+  {
+   "t": 29628,
+   "type": "agent",
+   "id": "a4",
+   "task": "8",
+   "label": "Refactor config.Load",
+   "model": "sonnet",
+   "effort": "high"
+  },
+  {
+   "t": 30351,
+   "type": "move",
+   "id": "6",
+   "column": "In Progress",
+   "agent": "a2"
+  },
+  {
+   "t": 31014,
+   "type": "move",
+   "id": "8",
+   "column": "In Progress",
+   "agent": "a4"
+  },
+  {
+   "t": 31664,
+   "type": "move",
+   "id": "7",
+   "column": "In Progress",
+   "agent": "a3"
+  },
+  {
+   "t": 32434,
+   "type": "agent",
+   "id": "a1",
+   "activity": "editing internal/auth/handler.go"
+  },
+  {
+   "t": 32828,
+   "type": "agent",
+   "id": "a1",
+   "activity": "running tests"
+  },
+  {
+   "t": 33241,
+   "type": "agent",
+   "id": "a3",
+   "activity": "editing README.md"
+  },
+  {
+   "t": 33834,
+   "type": "move",
+   "id": "5",
+   "column": "Review",
+   "agent": "a1"
+  },
+  {
+   "t": 34487,
+   "type": "agent",
+   "id": "a4",
+   "activity": "writing internal/config/config.go"
+  },
+  {
+   "t": 34880,
+   "type": "agent",
+   "id": "a4",
+   "activity": "running tests"
+  },
+  {
+   "t": 35328,
+   "type": "move",
+   "id": "7",
+   "column": "Review",
+   "agent": "a3"
+  },
+  {
+   "t": 36080,
+   "type": "agent",
+   "id": "a1",
+   "status": "done"
+  },
+  {
+   "t": 36596,
+   "type": "agent",
+   "id": "a2",
+   "activity": "editing internal/cache/cache.go"
+  },
+  {
+   "t": 36986,
+   "type": "move",
+   "id": "8",
+   "column": "Review",
+   "agent": "a4"
+  },
+  {
+   "t": 37711,
+   "type": "agent",
+   "id": "a2",
+   "activity": "editing internal/cache/cache_test.go"
+  },
+  {
+   "t": 38170,
+   "type": "agent",
+   "id": "a3",
+   "status": "done"
+  },
+  {
+   "t": 38634,
+   "type": "agent",
+   "id": "a4",
+   "status": "done"
+  },
+  {
+   "t": 39211,
+   "type": "agent",
+   "id": "a2",
+   "activity": "editing internal/cache/cache.go"
+  },
+  {
+   "t": 40242,
+   "type": "move",
+   "id": "6",
+   "column": "Review",
+   "agent": "a2"
+  },
+  {
+   "t": 41162,
+   "type": "agent",
+   "id": "a2",
+   "status": "done"
+  },
+  {
+   "t": 42205,
+   "type": "tool",
+   "cmd": "make test",
+   "out": [
+    "ok    internal/auth",
+    "ok    internal/cache",
+    "ok    internal/config"
+   ]
+  },
+  {
+   "t": 43214,
+   "type": "tool",
+   "cmd": "go test -race -count=20 ./internal/cache",
+   "out": [
+    "ok    internal/cache"
+   ]
+  },
+  {
+   "t": 44299,
+   "type": "tool",
+   "cmd": "git push origin main",
+   "out": [
+    "To https://github.com/aramponi/acme-api.git",
+    "   23c767e..b8125d1  main -\u003e main"
+   ]
+  },
+  {
+   "t": 45636,
+   "type": "tool",
+   "cmd": "yakanban move 5 Done",
+   "out": [
+    "#5 Expired session returns 500 instead of 401",
+    "Status     Done"
+   ]
+  },
+  {
+   "t": 46636,
+   "type": "move",
+   "id": "5",
+   "column": "Done"
+  },
+  {
+   "t": 47296,
+   "type": "tool",
+   "cmd": "yakanban move 6 Done",
+   "out": [
+    "#6 Data race in cache.Invalidate",
+    "Status     Done"
+   ]
+  },
+  {
+   "t": 48296,
+   "type": "move",
+   "id": "6",
+   "column": "Done"
+  },
+  {
+   "t": 48956,
+   "type": "tool",
+   "cmd": "yakanban move 7 Done",
+   "out": [
+    "#7 README: install command typo (go instal)",
+    "Status     Done"
+   ]
+  },
+  {
+   "t": 49956,
+   "type": "move",
+   "id": "7",
+   "column": "Done"
+  },
+  {
+   "t": 50610,
+   "type": "tool",
+   "cmd": "yakanban move 8 Done",
+   "out": [
+    "#8 Refactor config.Load into one function per storage provider",
+    "Status     Done"
+   ]
+  },
+  {
+   "t": 51610,
+   "type": "move",
+   "id": "8",
+   "column": "Done"
+  },
+  {
+   "t": 52639,
+   "type": "tool",
+   "cmd": "yakanban delete 5 --yes",
+   "out": [
+    "closed and archived 5"
+   ]
+  },
+  {
+   "t": 53639,
+   "type": "archive",
+   "id": "5"
+  },
+  {
+   "t": 54200,
+   "type": "tool",
+   "cmd": "yakanban delete 6 --yes",
+   "out": [
+    "closed and archived 6"
+   ]
+  },
+  {
+   "t": 55200,
+   "type": "archive",
+   "id": "6"
+  },
+  {
+   "t": 55759,
+   "type": "tool",
+   "cmd": "yakanban delete 7 --yes",
+   "out": [
+    "closed and archived 7"
+   ]
+  },
+  {
+   "t": 56759,
+   "type": "archive",
+   "id": "7"
+  },
+  {
+   "t": 57313,
+   "type": "tool",
+   "cmd": "yakanban delete 8 --yes",
+   "out": [
+    "closed and archived 8"
+   ]
+  },
+  {
+   "t": 58313,
+   "type": "archive",
+   "id": "8"
+  },
+  {
+   "t": 59070,
+   "type": "tool",
+   "cmd": "yakanban board",
+   "out": [
+    "acme-api  Backlog:0 Todo:0 In Progress:0 Review:0 Done:0  total:0  blocked:0  overdue:0"
+   ]
+  },
+  {
+   "t": 60255,
+   "type": "say",
+   "text": "All four tickets are fixed, pushed to main, and closed."
+  }
+ ]
+}

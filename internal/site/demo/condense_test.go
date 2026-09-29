@@ -226,3 +226,59 @@ func TestCleanCommand(t *testing.T) {
 		}
 	}
 }
+
+func TestCondenseArchivesDeletedTickets(t *testing.T) {
+	s := happyPath("Done")
+	s.run("t10", "", "yakanban delete 7 --yes", "#7 closed and archived", false)
+	s.snapshot() // an archived ticket leaves the board
+	tl, err := Condense(s.take())
+	if err != nil {
+		t.Fatal(err)
+	}
+	last := tl.Events[len(tl.Events)-1]
+	if last.Type != "archive" || last.ID != "7" {
+		t.Errorf("last event = %+v, want the archive of #7", last)
+	}
+}
+
+func TestCondenseRefusesATicketThatVanished(t *testing.T) {
+	s := happyPath("Done")
+	s.snapshot() // gone, but nothing in the session removed it
+	_, err := Condense(s.take())
+	if err == nil || !strings.Contains(err.Error(), "#7 replays to Done, but it is no longer on the board") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestCondenseShowsARepeatedActivityOnce(t *testing.T) {
+	base, err := Condense(happyPath("Done").take())
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := happyPath("Done")
+	s.task("task_progress", "task-ag1", map[string]any{"description": "Editing README.md"})
+	s.task("task_progress", "task-ag1", map[string]any{"description": "Editing README.md"})
+	tl, err := Condense(s.take())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(tl.Events), len(base.Events)+1; got != want {
+		t.Errorf("%d events, want %d: the same activity twice in a row is shown once", got, want)
+	}
+}
+
+func TestCompound(t *testing.T) {
+	for cmd, want := range map[string]bool{
+		"yakanban board":                                    false,
+		"make test 2>&1 | tail -60":                         false,
+		`yakanban create "a; b" --body "x && y"`:            false,
+		"yakanban board --compact; git status --short":      true,
+		"yakanban agent-name && yakanban move 1 Todo":       true,
+		"for i in 1 2; do yakanban show $i; done":           true,
+		"yakanban create \"t\" --body \"line one\nline 2\"": false,
+	} {
+		if got := compound(cmd); got != want {
+			t.Errorf("compound(%q) = %v, want %v", cmd, got, want)
+		}
+	}
+}
