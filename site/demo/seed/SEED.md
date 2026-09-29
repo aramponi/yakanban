@@ -11,5 +11,9 @@ recording starts from the same four problems:
 | `Cache.Invalidate` walks the map without the lock | `make test` reports a data race |
 | `config.Load` handles every provider in one function | the TODO above it |
 
+`.claude/agents/worker-{low,medium,high}.md` are the sub-agents the session
+dispatches. Each fixes its reasoning effort; the session picks the model per
+ticket when it launches one, so every ticket gets its own pair.
+
 It is its own Go module, so the yakanban build and `go test ./...` never see
 it. Do not fix the bugs here: they are the script.
