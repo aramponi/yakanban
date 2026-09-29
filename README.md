@@ -388,7 +388,7 @@ make site      # the landing page and llms.txt
 `make check` runs golangci-lint, pinned to the same version as CI:
 
 ```bash
-go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.0
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 ```
 
 ## License
