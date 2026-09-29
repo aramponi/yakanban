@@ -57,10 +57,15 @@ func buildFromRepo(t *testing.T) (*Page, *Readme) {
 	if err != nil {
 		t.Fatalf("site/content.md: %v", err)
 	}
+	demos, err := LoadDemos(repoRoot(t), content)
+	if err != nil {
+		t.Fatalf("site/demo: %v", err)
+	}
 	page, err := Build(Input{
 		Readme:  readme,
 		Content: content,
 		Samples: stubSamples(),
+		Demos:   demos,
 		Repo:    "https://github.com/aramponi/yakanban",
 		SiteURL: "https://aramponi.github.io/yakanban",
 		Version: "v0.0.0-test",
@@ -326,5 +331,44 @@ func TestNoRootAbsoluteLinks(t *testing.T) {
 	// somebody else's problem, not a subpath mistake.
 	for _, m := range regexp.MustCompile(`(?:href|src)="(/[^/"][^"]*)"`).FindAllStringSubmatch(html, -1) {
 		t.Errorf("root-absolute link %q leaves the site: it resolves against the domain root, not the project subpath", m[1])
+	}
+}
+
+// TestTheHeroReplaysTheRecordedSession checks the clip reaches the page with
+// everything it needs to play, and that the page says what it is.
+func TestTheHeroReplaysTheRecordedSession(t *testing.T) {
+	page, _ := buildFromRepo(t)
+	html, err := page.RenderHTML()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`<div data-demo="demo-session"></div>`,
+		`<script type="application/json" id="demo-session">{"recorded":`,
+		`window.YakanbanDemo`,
+		`.demo-stage`,
+		`The clip above is a recorded session on a demo repository.`,
+		`from a recorded session and from the binary's own output`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Errorf("the page is missing %q", want)
+		}
+	}
+	if strings.Contains(html, "Every terminal block on this page is captured output") {
+		t.Error("the page still claims every terminal block is captured from this project's board")
+	}
+}
+
+// TestADemoMustBeARecordedSession keeps a hand-written timeline, however
+// convincing, off the page.
+func TestADemoMustBeARecordedSession(t *testing.T) {
+	for name, raw := range map[string]string{
+		"hand-written": `{"duration": 30000, "title": "claude", "events": [{"t": 0, "type": "prompt", "text": "hi"}]}`,
+		"leaky":        `{"recorded": "2026-09-29", "real": 1000, "duration": 2000, "title": "claude", "events": [{"t": 0, "type": "tool", "cmd": "cat /Users/someone/x"}]}`,
+		"unknown":      `{"recorded": "2026-09-29", "real": 1000, "duration": 2000, "speedup": 9, "events": [{"t": 0, "type": "prompt", "text": "hi"}]}`,
+	} {
+		if _, err := demoHTML("session", []byte(raw)); err == nil {
+			t.Errorf("%s timeline was accepted", name)
+		}
 	}
 }

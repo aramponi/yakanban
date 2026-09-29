@@ -27,6 +27,10 @@ type Page struct {
 
 	CSS template.CSS
 
+	// HasDemo is set when the page replays a recorded session, which is the
+	// one thing on it not captured from this project's own board.
+	HasDemo bool
+
 	// ExitCodeSummary is the exit-code table folded into one line, for
 	// llms.txt, where an agent wants the contract and not a page of prose.
 	ExitCodeSummary string
@@ -37,6 +41,7 @@ type Input struct {
 	Readme  *Readme
 	Content *Content
 	Samples map[string]Transcript
+	Demos   map[string][]byte // recorded sessions by name, see LoadDemos
 	Repo    string
 	SiteURL string
 	Version string
@@ -76,6 +81,22 @@ func Build(in Input) (*Page, error) {
 				return nil, fmt.Errorf("section %q wants the capture %q, which no sample produces", s.Title, s.Sample)
 			}
 			s.SampleHTML = template.HTML(codeHTML("console", "$ "+t.Command+"\n"+t.Output))
+		}
+		if s.Demo != "" {
+			if p.HasDemo {
+				return nil, fmt.Errorf("section %q asks for a second demo; the page replays one session", s.Title)
+			}
+			h, err := demoHTML(s.Demo, in.Demos[s.Demo])
+			if err != nil {
+				return nil, fmt.Errorf("section %q: %w", s.Title, err)
+			}
+			s.DemoHTML = h
+			p.HasDemo = true
+			demoCSS, err := assets.ReadFile("assets/demo.css")
+			if err != nil {
+				return nil, err
+			}
+			p.CSS += "\n" + template.CSS(demoCSS)
 		}
 		if s.Table != "" {
 			t, ok := in.Readme.Tables[s.Table]

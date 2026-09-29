@@ -66,10 +66,16 @@ func run(root, out, bin, repo, siteURL, ver string) error {
 		return fmt.Errorf("capturing terminal output: %w", err)
 	}
 
+	demos, err := site.LoadDemos(root, content)
+	if err != nil {
+		return err
+	}
+
 	page, err := site.Build(site.Input{
 		Readme:  readme,
 		Content: content,
 		Samples: samples,
+		Demos:   demos,
 		Repo:    repo,
 		SiteURL: siteURL,
 		Version: ver,

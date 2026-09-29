@@ -1,0 +1,311 @@
+/* The hero clip. It borrows the page's tokens, so it follows the theme the
+   reader chose, and only adds the few colours a board needs to tell its
+   models and priorities apart. */
+
+.demo {
+  --demo-haiku:  #2f7d6d;
+  --demo-sonnet: #3d64b8;
+  --demo-opus:   #8a4bb0;
+  --demo-crit:   #b3261e;
+  --demo-high:   #c2571a;
+  --demo-med:    #a07a12;
+  --demo-low:    #6b7a73;
+  --demo-done:   #2f7d4f;
+
+  /* Wider than the prose: a board with four columns needs the room. */
+  width: min(70rem, 100vw - 3rem);
+  margin: 2.75rem 0 0 calc(50% - min(35rem, 50vw - 1.5rem));
+}
+
+:root[data-theme="dark"] .demo {
+  --demo-haiku:  #5fbfa9;
+  --demo-sonnet: #7ea0ea;
+  --demo-opus:   #c291e2;
+  --demo-crit:   #f07167;
+  --demo-high:   #f0955a;
+  --demo-med:    #dcb44a;
+  --demo-low:    #93a39b;
+  --demo-done:   #6cc38f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .demo {
+    --demo-haiku:  #5fbfa9;
+    --demo-sonnet: #7ea0ea;
+    --demo-opus:   #c291e2;
+    --demo-crit:   #f07167;
+    --demo-high:   #f0955a;
+    --demo-med:    #dcb44a;
+    --demo-low:    #93a39b;
+    --demo-done:   #6cc38f;
+  }
+}
+
+.demo-stage {
+  display: grid;
+  /* The board gets the larger share: five column names have to fit. */
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr);
+  gap: 0.8rem;
+  height: 25rem;
+}
+
+.demo-term, .demo-board {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.demo-term { background: var(--sunken); }
+.demo-board { background: var(--raised); }
+
+.demo-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.demo-bar-title { font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; }
+.demo-board .demo-bar-title { color: var(--ink); font-family: var(--sans); font-weight: 600; }
+.demo-dots, .demo-dots::before, .demo-dots::after {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.demo-dots { position: relative; margin-right: 2.1rem; }
+.demo-dots::before, .demo-dots::after { content: ""; position: absolute; top: 0; }
+.demo-dots::before { left: 14px; }
+.demo-dots::after { left: 28px; }
+.demo-project-icon {
+  width: 13px; height: 11px;
+  border: 1.5px solid var(--muted);
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent 3px, var(--muted) 3px 4.5px, transparent 4.5px 7px, var(--muted) 7px 8.5px, transparent 8.5px);
+}
+.demo-bar-tab {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-size: 11.5px;
+}
+
+/* ---------- terminal ---------- */
+
+.demo-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; /* new lines push old ones off the top */
+  overflow: hidden;
+  padding: 0.7rem 0.9rem 0.8rem;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.demo-line { display: flex; gap: 0.5rem; align-items: baseline; min-width: 0; }
+.demo-line > span { min-width: 0; }
+.demo-prompt {
+  margin-top: 0.7rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--raised);
+}
+.demo-caret { color: var(--muted); }
+.demo-cursor {
+  display: inline-block;
+  width: 0.55em; height: 1.1em;
+  margin-left: -0.35rem;
+  align-self: center;
+  background: var(--ink);
+  animation: demo-blink 1s steps(1) infinite;
+}
+@keyframes demo-blink { 50% { opacity: 0; } }
+
+.demo-say, .demo-tool, .demo-agent { margin-top: 0.45rem; }
+.demo-bullet {
+  flex: none;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--ink);
+  align-self: center;
+}
+.demo-tool .demo-bullet, .demo-agent .demo-bullet { background: var(--demo-done); }
+.demo-tool-name { font-weight: 600; flex: none; }
+.demo-agent-task { flex: none; color: var(--muted); }
+.demo-cmd, .demo-agent-label { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.demo-out { color: var(--muted); padding-left: 0.25rem; }
+.demo-elbow { flex: none; width: 1ch; }
+
+.demo-agent .demo-bullet { animation: demo-pulse 1.1s ease-in-out infinite; background: var(--accent); }
+.demo-agent.is-done .demo-bullet { animation: none; background: var(--demo-done); }
+@keyframes demo-pulse { 50% { opacity: 0.25; } }
+.demo-status {
+  margin-left: auto;
+  flex: 0 1 auto;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent);
+  font-size: 11.5px;
+}
+.demo-agent.is-done .demo-status { color: var(--demo-done); }
+
+/* ---------- board ---------- */
+
+.demo-cols {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0.55rem;
+  padding: 0.7rem;
+  background: var(--sunken);
+}
+.demo-empty {
+  align-self: center;
+  justify-self: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.demo-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.demo-col-head {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0.5rem 0.35rem;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* A name wraps rather than being cut: "In Pr…" says nothing. */
+.demo-col-name { white-space: normal; line-height: 1.2; overflow-wrap: anywhere; min-width: 0; }
+.demo-col-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--muted); }
+.demo-col-1 { border-color: var(--demo-med); }
+.demo-col-2 { border-color: var(--demo-sonnet); }
+.demo-col-3 { border-color: var(--demo-done); }
+.demo-count {
+  margin-left: auto;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 0 0.4rem;
+  border-radius: 99px;
+  background: var(--sunken);
+}
+.demo-cards { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.15rem 0.4rem 0.5rem; }
+
+.demo-card {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.4rem 0.5rem 0.45rem;
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  will-change: transform;
+}
+.demo-card-top { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.15rem; }
+.demo-card-id { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.demo-prio {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.demo-p-critical .demo-prio { color: var(--demo-crit); }
+.demo-p-high .demo-prio { color: var(--demo-high); }
+.demo-p-medium .demo-prio { color: var(--demo-med); }
+.demo-p-low .demo-prio { color: var(--demo-low); }
+.demo-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.demo-card-claim:empty { display: none; }
+.demo-card-claim { margin-top: 0.3rem; }
+.demo-card.is-done .demo-card-title { color: var(--muted); }
+.demo-card.is-done .demo-chip { opacity: 0.55; }
+
+.demo-chip {
+  display: inline-block;
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+  padding: 0 0.4rem;
+  border-radius: 99px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.demo-chip-effort::before { content: " · "; }
+.demo-m-haiku { color: var(--demo-haiku); }
+.demo-m-sonnet { color: var(--demo-sonnet); }
+.demo-m-opus { color: var(--demo-opus); }
+
+/* ---------- caption ---------- */
+
+.demo-caption {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.55rem;
+  color: var(--muted);
+  font-size: 13px;
+}
+.demo-pause {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 0.1rem 0.6rem;
+}
+.demo-pause:hover { color: var(--ink); border-color: var(--muted); }
+.demo-pause:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Between a phone and a wide screen, the dots are the first thing to go. */
+@media (max-width: 1150px) {
+  .demo-col-dot { display: none; }
+}
+
+@media (max-width: 760px) {
+  .demo-count { display: none; }
+  .demo { width: auto; margin-left: 0; }
+  .demo-stage { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .demo-term { height: 15rem; }
+  .demo-board { height: 19rem; }
+  .demo-screen { font-size: 11.5px; }
+  .demo-cols { gap: 0.35rem; padding: 0.45rem; }
+  .demo-col-head { padding: 0.4rem 0.35rem 0.3rem; font-size: 11px; }
+  .demo-col-dot { display: none; }
+  .demo-cards { padding: 0.1rem 0.25rem 0.4rem; }
+  .demo-card { padding: 0.3rem 0.35rem; font-size: 11px; }
+  .demo-prio { display: none; }
+  .demo-chip { font-size: 9.5px; padding: 0 0.3rem; }
+  /* A card is too narrow for "sonnet · medium" on one line. */
+  .demo-card .demo-chip { display: inline-flex; flex-direction: column; border-radius: 5px; line-height: 1.3; padding: 0.05rem 0.3rem; }
+  .demo-card .demo-chip-effort::before { content: none; }
+  .demo-status-note { display: none; }
+}

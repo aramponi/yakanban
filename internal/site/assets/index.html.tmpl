@@ -34,6 +34,7 @@
 <div class="hero wrap">
   <h1>{{ .Title }}</h1>
   <p class="blurb">{{ .Blurb }}</p>
+  {{ with .Hero.DemoHTML }}{{ . }}{{ end }}
   <div class="aside prose">{{ .Hero.Body }}</div>
 
   <div class="install">
@@ -50,7 +51,11 @@
       <div class="panel"><pre><code>{{ .Command }}</code></pre></div>
       {{- end }}
     </div>
+    {{- if .HasDemo }}
+    <p class="note">The clip above is a recorded session on a demo repository. Every other terminal block on this page is captured output, from the board this project runs on.</p>
+    {{- else }}
     <p class="note">Every terminal block on this page is captured output, from the board this project runs on.</p>
+    {{- end }}
   </div>
 
   {{ with .Hero.SampleHTML }}{{ . }}{{ end }}
@@ -61,6 +66,7 @@
   <div class="wrap">
     <h2>{{ md .Title }}</h2>
     <div class="prose">{{ .Body }}</div>
+    {{ with .DemoHTML }}{{ . }}{{ end }}
     {{ with .SampleHTML }}{{ . }}{{ end }}
     {{ with .TableHTML }}<div class="table-scroll">{{ . }}</div>{{ end }}
     {{- range .Items }}
@@ -84,7 +90,7 @@
       <a href="llms.txt">llms.txt</a>
       <a href="{{ .Repo }}/blob/main/LICENSE">MIT licence</a>
     </div>
-    <p class="built">Generated from {{ .Title }} {{ .Version }} on {{ .Built }}. This page has no facts of its own: it is built from README.md and from the binary's own output.</p>
+    <p class="built">Generated from {{ .Title }} {{ .Version }} on {{ .Built }}. This page has no facts of its own: it is built from README.md{{ if .HasDemo }}, from a recorded session{{ end }} and from the binary's own output.</p>
   </div>
 </footer>
 
