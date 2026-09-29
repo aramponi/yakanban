@@ -1,0 +1,46 @@
+<!doctype html>
+<!--
+Development harness for the hero clip player (internal/site/assets/demo.*).
+Serve the repository root and open /site/demo/preview.html:
+
+    python3 -m http.server 8765
+
+It loads the page's real stylesheet, so what it shows is what the hero shows.
+?t=provisional (the default) or ?t=<path> picks the timeline.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo clip preview</title>
+<link rel="stylesheet" href="../../internal/site/assets/styles.css">
+<link rel="stylesheet" href="../../internal/site/assets/demo.css">
+</head>
+<body>
+<header class="masthead wrap">
+  <span class="name">yakanban</span>
+  <nav><button id="theme" type="button" style="display:inline-block">Theme</button></nav>
+</header>
+<main>
+<div class="hero wrap">
+  <h1>yakanban</h1>
+  <p class="blurb">A Kanban board for coding agents, backed by the tracker your team already uses.</p>
+  <div id="clip"></div>
+</div>
+</main>
+<script src="../../internal/site/assets/demo.js"></script>
+<script>
+document.getElementById('theme').onclick = function () {
+  var r = document.documentElement;
+  var dark = r.dataset.theme === 'dark' ||
+    (!r.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
+  r.dataset.theme = dark ? 'light' : 'dark';
+};
+var t = new URLSearchParams(location.search).get('t') || 'timeline.provisional.json';
+fetch(t).then(function (r) { return r.json(); }).then(function (tl) {
+  // Exposed so a timeline can be inspected frame by frame from the console.
+  window.player = YakanbanDemo.mount(document.getElementById("clip"), tl);
+});
+</script>
+</body>
+</html>
