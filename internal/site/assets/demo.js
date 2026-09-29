@@ -7,8 +7,8 @@
 //   {
 //     "recorded": "2026-09-29",     when the session was captured
 //     "version":  "v0.9.0",         the yakanban that captured it
-//     "speedup":  12,               how much faster than real time it plays
-//     "duration": 30000,            ms before the loop restarts
+//     "real":     284000,           ms the session actually took
+//     "duration": 57000,            ms the clip takes, before the loop restarts
 //     "title":    "claude — acme-api",
 //     "events": [ { "t": ms, "type": ..., ... } ]
 //   }
@@ -22,7 +22,10 @@
 //   card    {id, title, column, priority}
 //   move    {id, column, agent?}        a card changes column; agent claims it
 //   agent   {id, task, label, model, effort}   a sub-agent starts
-//   agent   {id, status: "done", note}         and finishes
+//   agent   {id, activity}                     what it is doing now
+//   agent   {id, status: "done"|"running", note?}   it stops, or is resumed
+//
+// internal/site/demo builds a timeline from a recorded session.
 //
 // The page renders the final frame, without motion, for readers who asked the
 // system for reduced motion.
@@ -117,12 +120,17 @@
       'and hands each ticket to a sub-agent with its own model and effort, while the board updates beside it.');
   };
 
+  function span(ms) {
+    var s = Math.round(ms / 1000), m = Math.floor(s / 60);
+    return m ? m + ' min ' + (s % 60 ? (s % 60) + ' s' : '') : s + ' s';
+  }
+
   Player.prototype.caption = function () {
     var tl = this.tl;
     if (tl.provisional) return 'Provisional timeline, for developing the player only.';
     var s = 'A real session, recorded ' + tl.recorded;
     if (tl.version) s += ' with yakanban ' + tl.version;
-    if (tl.speedup) s += ', replayed at ' + tl.speedup + '× speed';
+    if (tl.real && tl.duration) s += ': ' + span(tl.real) + ' of work, shown in ' + span(tl.duration);
     return s + '.';
   };
 
@@ -197,7 +205,7 @@
   Player.prototype.chip = function (agent) {
     var c = h('span', 'demo-chip demo-m-' + String(agent.model).toLowerCase());
     c.appendChild(h('span', 'demo-chip-model', agent.model));
-    c.appendChild(h('span', 'demo-chip-effort', agent.effort));
+    if (agent.effort) c.appendChild(h('span', 'demo-chip-effort', agent.effort));
     return c;
   };
 
@@ -241,10 +249,15 @@
         break;
 
       case 'agent':
+        a = this.agents[e.id];
+        if (e.activity) {
+          if (!a.line.classList.contains('is-done')) a.status.textContent = e.activity;
+          break;
+        }
         if (e.status) {
-          a = this.agents[e.id];
-          a.line.classList.add('is-done');
-          a.status.textContent = 'done';
+          var done = e.status === 'done';
+          a.line.classList.toggle('is-done', done);
+          a.status.textContent = e.status;
           if (e.note) a.status.appendChild(h('span', 'demo-status-note', ' · ' + e.note));
           break;
         }

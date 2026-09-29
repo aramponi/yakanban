@@ -13,8 +13,13 @@ It loads the page's real stylesheet, so what it shows is what the hero shows.
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Demo clip preview</title>
-<link rel="stylesheet" href="../../internal/site/assets/styles.css">
-<link rel="stylesheet" href="../../internal/site/assets/demo.css">
+<script>
+// Always the files on disk: this page exists to see edits to them.
+var bust = '?' + Date.now();
+document.write('<link rel="stylesheet" href="../../internal/site/assets/styles.css' + bust + '">' +
+  '<link rel="stylesheet" href="../../internal/site/assets/demo.css' + bust + '">' +
+  '<script src="../../internal/site/assets/demo.js' + bust + '"><\/script>');
+</script>
 </head>
 <body>
 <header class="masthead wrap">
@@ -28,7 +33,6 @@ It loads the page's real stylesheet, so what it shows is what the hero shows.
   <div id="clip"></div>
 </div>
 </main>
-<script src="../../internal/site/assets/demo.js"></script>
 <script>
 document.getElementById('theme').onclick = function () {
   var r = document.documentElement;
@@ -37,7 +41,7 @@ document.getElementById('theme').onclick = function () {
   r.dataset.theme = dark ? 'light' : 'dark';
 };
 var t = new URLSearchParams(location.search).get('t') || 'timeline.provisional.json';
-fetch(t).then(function (r) { return r.json(); }).then(function (tl) {
+fetch(t, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (tl) {
   // Exposed so a timeline can be inspected frame by frame from the console.
   window.player = YakanbanDemo.mount(document.getElementById("clip"), tl);
 });

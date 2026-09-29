@@ -146,7 +146,16 @@
 .demo-agent .demo-bullet { animation: demo-pulse 1.1s ease-in-out infinite; background: var(--accent); }
 .demo-agent.is-done .demo-bullet { animation: none; background: var(--demo-done); }
 @keyframes demo-pulse { 50% { opacity: 0.25; } }
-.demo-status { margin-left: auto; flex: none; color: var(--accent); font-size: 11.5px; }
+.demo-status {
+  margin-left: auto;
+  flex: 0 1 auto;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent);
+  font-size: 11.5px;
+}
 .demo-agent.is-done .demo-status { color: var(--demo-done); }
 
 /* ---------- board ---------- */
