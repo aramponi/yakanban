@@ -42,7 +42,8 @@
 
 .demo-stage {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  /* The board gets the larger share: five column names have to fit. */
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.3fr);
   gap: 0.8rem;
   height: 25rem;
 }
@@ -188,13 +189,14 @@
 .demo-col-head {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.55rem 0.35rem;
-  font-size: 12px;
+  gap: 0.3rem;
+  padding: 0.5rem 0.5rem 0.35rem;
+  font-size: 11.5px;
   font-weight: 600;
   white-space: nowrap;
 }
-.demo-col-name { overflow: hidden; text-overflow: ellipsis; }
+/* A name wraps rather than being cut: "In Pr…" says nothing. */
+.demo-col-name { white-space: normal; line-height: 1.2; overflow-wrap: anywhere; min-width: 0; }
 .demo-col-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--muted); }
 .demo-col-1 { border-color: var(--demo-med); }
 .demo-col-2 { border-color: var(--demo-sonnet); }
@@ -283,7 +285,13 @@
 .demo-pause:hover { color: var(--ink); border-color: var(--muted); }
 .demo-pause:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* Between a phone and a wide screen, the dots are the first thing to go. */
+@media (max-width: 1150px) {
+  .demo-col-dot { display: none; }
+}
+
 @media (max-width: 760px) {
+  .demo-count { display: none; }
   .demo { width: auto; margin-left: 0; }
   .demo-stage { grid-template-columns: minmax(0, 1fr); height: auto; }
   .demo-term { height: 15rem; }

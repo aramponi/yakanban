@@ -8,12 +8,14 @@ so there is no second copy of anything that can quietly stop being true.
 
 `sample: NAME` renders the captured output of that command in the section.
 `table: ID`   renders the README table marked with that id.
+`demo: NAME`  replays the recorded session in site/demo/NAME.json.
 -->
 
 # yakanban
 
 ## Hero
 
+demo: session
 sample: board
 
 Your coding agent just finished a task. Nobody else knows: no ticket moved, no

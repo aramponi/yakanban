@@ -128,7 +128,6 @@
 
   Player.prototype.caption = function () {
     var tl = this.tl;
-    if (tl.provisional) return 'Provisional timeline, for developing the player only.';
     var s = 'A real session, recorded ' + tl.recorded;
     if (tl.version) s += ' with yakanban ' + tl.version;
     if (tl.real && tl.duration) s += ': ' + span(tl.real) + ' of work, shown in ' + span(tl.duration);

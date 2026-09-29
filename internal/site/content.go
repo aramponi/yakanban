@@ -30,12 +30,14 @@ type Section struct {
 	Title  string
 	Sample string // name of a terminal capture to show beside the prose
 	Table  string // id of a README table to render in the section
+	Demo   string // name of a recorded session to replay (site/demo/NAME.json)
 	Body   template.HTML
 	Items  []Item
 
 	// Filled in by Render, from the captures and the README.
 	SampleHTML template.HTML
 	TableHTML  template.HTML
+	DemoHTML   template.HTML
 }
 
 // Content is site/content.md, parsed.
@@ -126,7 +128,8 @@ func ParseContent(md string) (*Content, error) {
 	return c, nil
 }
 
-// directives pulls the "sample:" and "table:" lines out of a section body.
+// directives pulls the "sample:", "table:" and "demo:" lines out of a section
+// body.
 // They say what the section shows; the rest of it is prose.
 func (s *Section) directives(lines []string) []string {
 	var kept []string
@@ -138,6 +141,10 @@ func (s *Section) directives(lines []string) []string {
 		}
 		if id, ok := strings.CutPrefix(trimmed, "table:"); ok {
 			s.Table = strings.TrimSpace(id)
+			continue
+		}
+		if name, ok := strings.CutPrefix(trimmed, "demo:"); ok {
+			s.Demo = strings.TrimSpace(name)
 			continue
 		}
 		kept = append(kept, line)

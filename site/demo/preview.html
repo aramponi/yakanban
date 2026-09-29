@@ -6,7 +6,8 @@ Serve the repository root and open /site/demo/preview.html:
     python3 -m http.server 8765
 
 It loads the page's real stylesheet, so what it shows is what the hero shows.
-?t=provisional (the default) or ?t=<path> picks the timeline.
+?t=<path> picks the timeline: session.json (the default, what the page
+shows) or a take condensed with gendemo, e.g. takes/take-3/session.json.
 -->
 <html lang="en">
 <head>
@@ -40,7 +41,7 @@ document.getElementById('theme').onclick = function () {
     (!r.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches);
   r.dataset.theme = dark ? 'light' : 'dark';
 };
-var t = new URLSearchParams(location.search).get('t') || 'timeline.provisional.json';
+var t = new URLSearchParams(location.search).get('t') || 'session.json';
 fetch(t, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (tl) {
   // Exposed so a timeline can be inspected frame by frame from the console.
   window.player = YakanbanDemo.mount(document.getElementById("clip"), tl);
