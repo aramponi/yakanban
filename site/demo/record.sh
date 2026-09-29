@@ -13,6 +13,10 @@
 #   board.tsv    <epoch ms> TAB <the board as JSON, bodies stripped>
 #   meta.json    versions, prompts, seed commit, session id
 #
+# A take is raw and stays local (site/demo/takes is ignored): Claude Code
+# writes the account, organisation, local paths and installed plugins into
+# the session header. What the page publishes is the condensed timeline.
+#
 # It costs real tokens and makes real writes to aramponi/acme-api.
 set -euo pipefail
 
@@ -95,8 +99,12 @@ for line in sys.stdin:
 unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT
 
 SID=$(uuidgen | tr "[:upper:]" "[:lower:]")
+# Take 2 lost turns to read-only helpers it was refused (ls, sed, a project
+# listing); they are allowed now so the session spends its turns on the work.
 ALLOWED=(Read Edit Write Glob Grep Agent Skill
-  "Bash(yakanban:*)" "Bash(go:*)" "Bash(gofmt:*)" "Bash(make:*)" "Bash(git:*)")
+  "Bash(yakanban:*)" "Bash(go:*)" "Bash(gofmt:*)" "Bash(make:*)" "Bash(git:*)"
+  "Bash(ls:*)" "Bash(cat:*)" "Bash(head:*)" "Bash(sed -n:*)" "Bash(grep:*)"
+  "Bash(gh project list:*)" "Bash(gh project view:*)")
 
 for i in "${!PROMPTS[@]}"; do
   say "prompt $((i + 1))/${#PROMPTS[@]}: ${PROMPTS[$i]}"
