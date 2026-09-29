@@ -4,6 +4,11 @@
 Let your AI agents work the board your team already uses. No migration, no
 second UI, nothing for your product owner to learn.
 
+**[See it work in one minute](https://aramponi.github.io/yakanban/)**: a
+recorded Claude Code session sets up a board, files tickets and hands each one
+to a sub-agent with the model and effort it needs, while the board moves beside
+it.
+
 Your coding agent just finished a task. Nobody else knows: no ticket moved, no
 claim was taken, and the second agent you started in another terminal is about
 to pick up the same bug.
@@ -356,6 +361,11 @@ this README, which carries invisible `<!-- site:... -->` markers naming what
 the page takes. Every terminal block on the page is captured by running the
 binary against the board. `site/content.md` holds the page's own prose and
 nothing that is written here as well, so there is no second copy to keep true.
+
+The clip at the top of the page is the one exception, because recording it
+writes to a board: it is a real session, recorded once on a throwaway
+repository with `site/demo/record.sh` and condensed by `cmd/gendemo` into
+`site/demo/session.json`, and the page says when it was recorded.
 
 The extraction is assertive: a marker that moves, or a section asking for a
 capture nobody produces, fails generation rather than publishing a page with a
