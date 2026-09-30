@@ -16,6 +16,12 @@ builds:
     main: ./cmd/yakanban
     env: [CGO_ENABLED=0]
     flags: [-trimpath]
+    hooks:
+      post:
+        - cmd: 'bash scripts/sign-macos.sh "{{ .Path }}"'
+          env:
+            - 'RELEASE_GOOS={{ .Os }}'
+            - 'RELEASE_SNAPSHOT={{ .IsSnapshot }}'
     ldflags:
       - -s -w
       - -X github.com/aramponi/yakanban/internal/version.Version={{.Version}}
@@ -54,14 +60,6 @@ homebrew_casks:
       name: goreleaser
       email: noreply@github.com
     commit_msg_template: "yakanban {{ .Tag }}"
-    hooks:
-      post:
-        # The release binaries are not signed or notarised, so Gatekeeper
-        # would refuse to run them straight out of a downloaded archive.
-        install: |
-          if OS.mac?
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/yakanban"]
-          end
     caveats: |
       yakanban authenticates through the GitHub CLI. If you have not already:
 

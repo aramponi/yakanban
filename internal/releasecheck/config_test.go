@@ -14,6 +14,8 @@ type step struct {
 	Uses string            `yaml:"uses"`
 	With map[string]string `yaml:"with"`
 	Run  string            `yaml:"run"`
+	Env  map[string]string `yaml:"env"`
+	If   string            `yaml:"if"`
 }
 
 func readYAML(t *testing.T, name string, target any) {
@@ -63,7 +65,7 @@ func TestReleaseSecurity(t *testing.T) {
 	if installer < 0 || release <= installer || attest <= release {
 		t.Error("install cosign before releasing, then attest the archives")
 	}
-	for _, check := range []string{"gh release download", "cosign verify-blob", "sha256sum --check", "gh attestation verify", "--source-ref", "--source-digest"} {
+	for _, check := range []string{"gh release download", "cosign verify-blob", "shasum -a 256 --check", "gh attestation verify", "--source-ref", "--source-digest"} {
 		if !strings.Contains(runs, check) {
 			t.Errorf("missing published-release check: %s", check)
 		}
