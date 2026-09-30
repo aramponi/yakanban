@@ -1,0 +1,14 @@
+{
+  "name": "yakanban",
+  "description": "The yakanban agent skills: claim, work and hand off tickets on a GitHub or GitLab board.",
+  "owner": {
+    "name": "Antoine Ramponi"
+  },
+  "plugins": [
+    {
+      "name": "yakanban",
+      "source": "./",
+      "description": "Claims so two AI agents never grab the same ticket — on the GitHub or GitLab board your team already uses."
+    }
+  ]
+}
