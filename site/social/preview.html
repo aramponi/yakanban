@@ -1,0 +1,103 @@
+<!doctype html>
+<!-- GitHub social preview, 1280×640, rendered to social-preview.png with headless Chrome. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>yakanban social preview</title>
+<style>
+  :root {
+    --paper:  #fbfaf7;
+    --raised: #ffffff;
+    --sunken: #f2f0ea;
+    --ink:    #1b1a17;
+    --muted:  #605c53;
+    --line:   #e2ded4;
+    --accent: #a8451a;
+    --accent-soft: #f4ece4;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    width: 1280px; height: 640px; overflow: hidden;
+    background: var(--paper); color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    display: grid;
+    grid-template-columns: 560px 1fr;
+    gap: 56px;
+    align-items: center;
+    padding: 0 80px;
+  }
+  .mark {
+    font: 600 26px/1 var(--mono);
+    letter-spacing: -0.01em;
+    margin-bottom: 44px;
+  }
+  .mark span { color: var(--accent); }
+  h1 {
+    font-size: 50px; line-height: 1.12; letter-spacing: -0.02em;
+    font-weight: 700; margin: 0 0 24px;
+  }
+  h1 em { font-style: normal; color: var(--accent); }
+  p {
+    font-size: 24px; line-height: 1.45; color: var(--muted); margin: 0 0 44px;
+  }
+  .install {
+    display: inline-block;
+    font: 18px/1 var(--mono);
+    background: var(--sunken); border: 1px solid var(--line);
+    border-radius: 8px; padding: 14px 18px; color: var(--ink);
+  }
+  .install::before { content: "$ "; color: var(--muted); }
+
+  .term {
+    background: var(--raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 1px 0 var(--line), 0 18px 40px -24px rgba(27,26,23,.35);
+    overflow: hidden;
+  }
+  .bar {
+    display: flex; gap: 8px; padding: 14px 16px;
+    border-bottom: 1px solid var(--line); background: var(--sunken);
+  }
+  .bar i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); }
+  pre {
+    margin: 0; padding: 20px 22px 24px;
+    font: 16.5px/1.6 var(--mono); color: var(--ink);
+  }
+  .cmd  { color: var(--muted); }
+  .cmd b { color: var(--ink); font-weight: 600; }
+  .dim  { color: var(--muted); }
+  .hot  {
+    background: var(--accent-soft); color: var(--accent); font-weight: 600;
+    margin: 0 -22px; padding: 0 22px; display: inline-block; width: calc(100% + 44px);
+  }
+</style>
+</head>
+<body>
+  <div>
+    <div class="mark">yakanban<span>_</span></div>
+    <h1>Two AI agents never grab <em>the same ticket.</em></h1>
+    <p>Claims for your coding agents, on the GitHub or GitLab board your team already uses.</p>
+    <span class="install">brew install aramponi/tap/yakanban</span>
+  </div>
+
+  <div class="term">
+    <div class="bar"><i></i><i></i><i></i></div>
+<pre><span class="cmd">$ <b>yakanban board</b></span>
+yakanban (github)
+
+<span class="dim">COLUMN       TASKS  WIP  BLOCKED  CLAIMED</span>
+Backlog      0      —    —        —
+Todo         0      —    —        —
+<span class="hot">In Progress  1      —    —        1</span>
+Review       0      —    —        —
+Done         15     —    —        —
+
+<span class="dim">total 16   blocked 0   overdue 0</span></pre>
+  </div>
+</body>
+</html>

@@ -289,6 +289,24 @@ overwritten without `--force`: each installed file carries a version marker and
 a hash of the text yakanban wrote, so "stale" and "you changed this" are told
 apart. [Two agents need a word of explanation.](docs/agents.md#installing-the-skills)
 
+### Or as a Claude Code plugin
+
+For Claude Code there is a second route: this repository is also a plugin and
+its own marketplace, so the same two skills install from `/plugin` and update
+with every push to `main`, with no `skill update` to remember.
+
+```bash
+claude plugin marketplace add aramponi/yakanban
+claude plugin install yakanban@yakanban
+```
+
+Use one route or the other, not both: a skill installed by
+`skill install --agent claude` and the same skill from the plugin both load,
+and Claude sees each of them twice. Moving to the plugin means deleting
+`yakanban` and `yakanban-based-development` from `~/.claude/skills/` or the
+project's `.claude/skills/`. The plugin carries the skills only; the
+`yakanban` binary is still installed as above.
+
 ## Branches
 
 `yakanban branch` creates a branch on the backend and attaches it to the

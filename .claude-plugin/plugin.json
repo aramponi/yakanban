@@ -1,0 +1,9 @@
+{
+  "name": "yakanban",
+  "description": "Claims so two AI agents never grab the same ticket — on the GitHub or GitLab board your team already uses.",
+  "author": { "name": "Antoine Ramponi" },
+  "homepage": "https://aramponi.github.io/yakanban/",
+  "repository": "https://github.com/aramponi/yakanban",
+  "license": "MIT",
+  "keywords": ["kanban", "github-projects", "gitlab", "multi-agent", "tickets"]
+}
