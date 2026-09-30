@@ -31,9 +31,19 @@ gh attestation verify "$ARCHIVE" --repo aramponi/yakanban \
 All three checks must succeed. The exact certificate identity binds the
 signature to the release workflow and selected tag; the signed checksum binds
 the archive to that manifest. The SLSA build attestation records the source
-commit and build workflow. This is supply-chain verification, not Authenticode
-signing or macOS Developer ID signing/notarization; OS trust warnings are
-unchanged.
+commit and build workflow. Cosign is separate from OS-level signing.
+
+Starting with releases built by the Apple signing workflow, both macOS binaries
+are also signed with Developer ID Application and accepted by Apple's notary
+service before packaging. The published binaries are checked again with
+`codesign --verify --strict` against the release certificate. Older releases
+(including v1.0.0) are not retroactively signed. Windows Authenticode signing
+remains out of scope.
+
+Standalone command-line binaries cannot carry a stapled notarization ticket;
+macOS may need network access to retrieve it on first use. The Homebrew cask no
+longer removes quarantine. Maintainers must complete the
+[Apple signing setup](apple-signing.md) before publishing the first such release.
 
 CI checks the release security configuration and builds a snapshot on pull
 requests. CI explicitly skips snapshot signing and does not prove OIDC works.
