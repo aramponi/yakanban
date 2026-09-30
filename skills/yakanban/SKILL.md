@@ -19,7 +19,21 @@ cached locally for a minute, writes always go straight through.
 
 ## Current board state
 
-!`yakanban board --compact 2>/dev/null || echo 'No board configured — run: yakanban init'`
+!`yakanban board --compact 2>/dev/null || echo 'No board to show. If yakanban is not installed, see "If yakanban is not installed" below; otherwise run: yakanban init'`
+
+## If yakanban is not installed
+
+This skill ships without the binary. If `yakanban --version` fails with
+"command not found", do not install it yourself: tell the user it is missing,
+give them the one command for their system, and wait.
+
+| System | Command |
+|---|---|
+| macOS | `brew install aramponi/tap/yakanban` |
+| Windows | `scoop bucket add aramponi https://github.com/aramponi/scoop-bucket` then `scoop install yakanban` |
+| Anywhere Go is installed | `go install github.com/aramponi/yakanban/cmd/yakanban@latest` |
+
+Release binaries and the other options: https://github.com/aramponi/yakanban#install
 
 ## Rules
 
