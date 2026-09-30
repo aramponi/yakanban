@@ -72,6 +72,9 @@ Sanity check at the start of a session:
 yakanban board --compact    # confirm the board name and its columns
 ```
 
+If `yakanban` is not found, stop and follow "If yakanban is not installed" in
+the `yakanban` skill: the user installs it, not you.
+
 **Never hardcode column names.** They come from the tracker and a human may
 rename them. Read them from `yakanban board` or `yakanban config`. Matching is
 forgiving about case and separators, so `in-progress` finds `In Progress`.

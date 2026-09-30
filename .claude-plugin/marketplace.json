@@ -8,7 +8,7 @@
     {
       "name": "yakanban",
       "source": "./",
-      "description": "Claims so two AI agents never grab the same ticket — on the GitHub or GitLab board your team already uses."
+      "description": "Claims so two AI agents never grab the same ticket — on the GitHub or GitLab board your team already uses. Requires the yakanban CLI."
     }
   ]
 }
